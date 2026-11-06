@@ -198,11 +198,11 @@ footer { color: var(--muted); font-size: 13px; padding: 48px 0 40px; border-top:
 <div class="card">
   <div class="row">
     <label class="control">System to submit <select id="subSel"></select></label>
-    <button id="submitBtn">Open submission form</button>
+    <button id="submitBtn">Review and submit</button>
     <button class="secondary" id="downloadBtn">Download score file</button>
   </div>
   <div class="msg" id="sMsg"></div>
-  <p style="margin-top:12px" id="subInfo">Submissions open a GitHub issue with your scores filled in. Include the DOI and, ideally, the evidence and basis (E/I/T) for each score that the skill returns. To propose a new axis instead, use the <a href="#" id="axisLink">axis proposal form</a>.</p>
+  <p style="margin-top:12px" id="subInfo">"Review and submit" opens a page that summarizes your system, checks that every field is complete, and prepares a GitHub issue. Include the DOI and the evidence and basis (E/I/T) for each score that the skill returns. To propose a new axis instead, use the <a href="#" id="axisLink">axis proposal form</a>.</p>
 </div>
 
 <footer>
@@ -215,7 +215,8 @@ const DATA = {"version": "0.9", "statuses": {"anchor": "Anchor (in the manuscrip
 
 // Repository that receives community submissions (GitHub issue forms).
 const REPO_URL = "https://github.com/grieder/temp_DT_Design_Space";   // empty: submissions not open yet
-const SKILL_URL = "https://github.com/grieder/temp_DT_Design_Space/blob/main/digital-twin-scorer.skill";  // empty: skill shared as a file alongside the page
+const SUBMIT_PAGE = "submit.html";  // review-and-submit page, opened in a new tab
+const SKILL_URL ="";  // empty: skill shared as a file alongside the page
 
 // Everything about the axes comes from anchors.json, so a new axis needs only
 // a data change: axis_order, axes[*].{label, short, min, max, scale, ticks, cbar}.
@@ -514,10 +515,11 @@ if (!REPO_URL) {
 $("submitBtn").onclick = () => {
   const s = chosen(); if (!s) return;
   const payload = {...s, status: "community-pending", rubric_version: DATA.version};
-  const url = `${REPO_URL}/issues/new?template=submit-system.yml&title=${encodeURIComponent("Submission: " + s.name)}` +
-    `&scores=${encodeURIComponent(JSON.stringify(payload, null, 1))}`;
-  window.open(url, "_blank", "noopener");
-  $("sMsg").className = "msg"; $("sMsg").textContent = `Opened the submission form for ${s.name} in a new tab.`;
+  // Hand the system to the review page through the URL hash (base64url JSON); nothing is sent to a server.
+  const bytes = new TextEncoder().encode(JSON.stringify(payload));
+  const b64 = btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  window.open(`${SUBMIT_PAGE}#d=${b64}`, "_blank", "noopener");
+  $("sMsg").className = "msg"; $("sMsg").textContent = `Opened the review page for ${s.name} in a new tab.`;
 };
 if (SKILL_URL) $("skillLink").href = SKILL_URL;
 else $("skillLink").replaceWith(document.createTextNode("scoring skill (digital-twin-scorer.skill, shared with this page)"));

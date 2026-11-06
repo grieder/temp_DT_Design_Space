@@ -81,7 +81,19 @@ if args.offline:
 else:
     page = page.replace("<!--D3-->", D3_CDN)
 page = page.replace("<!--BANNER-->", f'<div class="banner" role="note">{html.escape(args.draft)}</div>' if args.draft else "")
-Path(args.out).write_text(page)
+out = Path(args.out)
+out.write_text(page)
+
+# Review-and-submit page, opened in a new tab by the main page.
+submit_name = "submit.html" if out.name == "index.html" else out.name.replace("index", "submit")
+if submit_name == out.name:
+    submit_name = out.stem + "_submit.html"
+page = out.read_text().replace('/*SUBMIT_PAGE*/"submit.html"', json.dumps(submit_name))
+out.write_text(page)
+sub = (HERE / "submit_template.html").read_text()
+sub = sub.replace("/*DATA*/null", json.dumps(data, ensure_ascii=False))
+sub = sub.replace('/*REPO_URL*/""', json.dumps(args.repo_url.rstrip("/")))
+(out.parent / submit_name).write_text(sub)
 counts = {}
 for s in data["systems"]:
     counts[s["status"]] = counts.get(s["status"], 0) + 1
