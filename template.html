@@ -141,12 +141,14 @@ footer { color: var(--muted); font-size: 13px; padding: 48px 0 40px; border-top:
   <label class="control">Marker size <select id="sSel"></select></label>
   <label class="control">Label size <input type="range" id="labelSize" min="9" max="22" value="13"></label>
   <label class="control">Marker scale <input type="range" id="markerScale" min="0.5" max="2" step="0.1" value="1"></label>
-  <label class="control">Label text <select id="labelMode"><option value="name">Short name</option><option value="author">Author et al. year</option><option value="both">Author year · name</option></select></label>
+  <label class="control">Label text <select id="labelMode"><option value="author">Author et al. year</option><option value="name">Short name</option><option value="both">Author year · name</option></select></label>
   <label class="control toggle"><input type="checkbox" id="showLabels" checked> Labels</label>
   <label class="control toggle"><input type="checkbox" id="showRef" checked> Reference anchors</label>
   <label class="control toggle"><input type="checkbox" id="showCand"> Candidates</label>
   <label class="control toggle"><input type="checkbox" id="showComm" checked> Community submissions</label>
-  <button class="secondary" id="exportPng" type="button">Export PNG</button>
+  <label class="control">Export format <select id="exportFmt"><option value="png">PNG</option><option value="svg">SVG (vector)</option></select></label>
+  <label class="control" id="dpiWrap">Resolution <select id="exportDpi"><option value="72">72 dpi</option><option value="150">150 dpi</option><option value="300" selected>300 dpi</option><option value="600">600 dpi</option></select></label>
+  <button class="secondary" id="exportBtn" type="button">Export plot</button>
 </div>
 
 <div class="explorer">
@@ -378,26 +380,46 @@ function draw() {
   drawTable();
 }
 
-// ---------- export the current plot as a PNG (2x resolution, solid background, current theme)
-$("exportPng").onclick = () => {
+// ---------- export the current plot as PNG (chosen dpi, recorded in the file) or SVG
+$("exportFmt").addEventListener("input", () => { $("dpiWrap").hidden = $("exportFmt").value !== "png"; });
+function download(blob, name) {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const crcTable = Array.from({length: 256}, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
+const crc32 = u8 => { let c = 0xFFFFFFFF; for (const b of u8) c = crcTable[(c ^ b) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+// Insert a pHYs chunk (pixels per metre) right after IHDR so other programs read the intended dpi.
+function setPngDpi(buf, dpi) {
+  const ppm = Math.round(dpi / 0.0254), chunk = new Uint8Array(21), v = new DataView(chunk.buffer);
+  v.setUint32(0, 9); chunk.set([0x70, 0x48, 0x59, 0x73], 4);        // length 9, "pHYs"
+  v.setUint32(8, ppm); v.setUint32(12, ppm); chunk[16] = 1;          // x, y, unit = metre
+  v.setUint32(17, crc32(chunk.subarray(4, 17)));
+  const src = new Uint8Array(buf), out = new Uint8Array(src.length + 21);
+  out.set(src.subarray(0, 33)); out.set(chunk, 33); out.set(src.subarray(33), 54);
+  return new Blob([out], {type: "image/png"});
+}
+$("exportBtn").onclick = () => {
   const src = $("plot").querySelector("svg"); if (!src) return;
-  const [, , W, H] = src.getAttribute("viewBox").split(" ").map(Number), k = 2;
+  const [, , W, H] = src.getAttribute("viewBox").split(" ").map(Number);
+  const fmt = $("exportFmt").value, dpi = +$("exportDpi").value, k = dpi / 96;   // the plot is W x H CSS pixels at 96 dpi
   const clone = src.cloneNode(true);
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-  clone.setAttribute("width", W * k); clone.setAttribute("height", H * k);
   clone.setAttribute("font-family", 'Inter, "Helvetica Neue", Arial, sans-serif');
   const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
   bg.setAttribute("width", W); bg.setAttribute("height", H); bg.setAttribute("fill", css("--bg"));
   clone.insertBefore(bg, clone.firstChild);
+  const ax = i => meta[$(i).value].name.replace(/[^A-Za-z0-9]+/g, "_"), base = `dt_landscape_${ax("xSel")}_vs_${ax("ySel")}`;
+  if (fmt === "svg") {
+    clone.setAttribute("width", W); clone.setAttribute("height", H);
+    download(new Blob([new XMLSerializer().serializeToString(clone)], {type: "image/svg+xml"}), base + ".svg");
+    return;
+  }
+  clone.setAttribute("width", Math.round(W * k)); clone.setAttribute("height", Math.round(H * k));
   const img = new Image();
   img.onload = () => {
-    const c = document.createElement("canvas"); c.width = W * k; c.height = H * k;
+    const c = document.createElement("canvas"); c.width = Math.round(W * k); c.height = Math.round(H * k);
     c.getContext("2d").drawImage(img, 0, 0);
-    c.toBlob(b => {
-      const a = document.createElement("a"), ax = i => meta[$(i).value].name.replace(/[^A-Za-z0-9]+/g, "_");
-      a.href = URL.createObjectURL(b); a.download = `dt_landscape_${ax("xSel")}_vs_${ax("ySel")}.png`;
-      document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    }, "image/png");
+    c.toBlob(b => b.arrayBuffer().then(buf => download(setPngDpi(buf, dpi), `${base}_${dpi}dpi.png`)), "image/png");
   };
   img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(clone));
 };
