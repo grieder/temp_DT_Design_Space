@@ -141,10 +141,12 @@ footer { color: var(--muted); font-size: 13px; padding: 48px 0 40px; border-top:
   <label class="control">Marker size <select id="sSel"></select></label>
   <label class="control">Label size <input type="range" id="labelSize" min="9" max="22" value="13"></label>
   <label class="control">Marker scale <input type="range" id="markerScale" min="0.5" max="2" step="0.1" value="1"></label>
+  <label class="control">Label text <select id="labelMode"><option value="name">Short name</option><option value="author">Author et al. year</option><option value="both">Author year · name</option></select></label>
   <label class="control toggle"><input type="checkbox" id="showLabels" checked> Labels</label>
   <label class="control toggle"><input type="checkbox" id="showRef" checked> Reference anchors</label>
   <label class="control toggle"><input type="checkbox" id="showCand"> Candidates</label>
   <label class="control toggle"><input type="checkbox" id="showComm" checked> Community submissions</label>
+  <button class="secondary" id="exportPng" type="button">Export PNG</button>
 </div>
 
 <div class="explorer">
@@ -246,8 +248,21 @@ function fillSelect(sel, value, withNone) {
 }
 fillSelect($("xSel"), "1"); fillSelect($("ySel"), "2");
 fillSelect($("cSel"), "6"); fillSelect($("sSel"), "none", true);
-["xSel","ySel","cSel","sSel","labelSize","markerScale","showLabels","showRef","showCand","showComm"].forEach(id =>
+["xSel","ySel","cSel","sSel","labelSize","labelMode","markerScale","showLabels","showRef","showCand","showComm"].forEach(id =>
   $(id).addEventListener("input", draw));
+
+// "Qian et al., Nat. Comput. Sci. 2025" -> "Qian et al. 2025"; falls back to the name when the reference has no year.
+function authorYear(d) {
+  const yr = (String(d.ref || "").match(/\b(?:19|20)\d{2}\b(?!.*\b(?:19|20)\d{2}\b)/) || [])[0];
+  const au = String(d.ref || "").split(",")[0].trim();
+  return yr && au && au !== String(d.ref).trim() ? `${au} ${yr}` : d.name;
+}
+function labelText(d) {
+  const mode = $("labelMode").value;
+  if (mode === "author") return authorYear(d);
+  if (mode === "both") { const a = authorYear(d); return a === d.name ? a : `${a} · ${d.name}`; }
+  return d.name;
+}
 
 function systems() {
   const base = DATA.systems.filter(s => s.status === "anchor" ||
@@ -336,7 +351,7 @@ function draw() {
     const order = [...data].sort((a, b) => y(a.scores[ya]) - y(b.scores[ya]));
     for (const d of order) {
       const px = x(d.scores[xa]), py = y(d.scores[ya]), r = size(d) + 4;
-      const w = d.name.length * charW, h = lsize * 1.15;
+      const label = labelText(d), w = label.length * charW, h = lsize * 1.15;
       const cands = [[r, -h / 2, "start"], [-r, -h / 2, "end"], [r, -h - 2, "start"], [r, 2, "start"],
                      [-r, -h - 2, "end"], [-r, 2, "end"], [-w / 2, -r - h, "middle"], [-w / 2, r, "middle"]];
       let best = null;
@@ -357,11 +372,35 @@ function draw() {
       svg.append("text").attr("x", tx).attr("y", best.box.y0 + h * 0.78).attr("text-anchor", best.anchor)
         .attr("font-size", lsize).attr("font-weight", d.status === "new" ? 800 : 700)
         .attr("fill", ink).attr("paint-order", "stroke").attr("stroke", css("--bg")).attr("stroke-width", 3)
-        .attr("pointer-events", "none").text(d.name);
+        .attr("pointer-events", "none").text(label);
     }
   }
   drawTable();
 }
+
+// ---------- export the current plot as a PNG (2x resolution, solid background, current theme)
+$("exportPng").onclick = () => {
+  const src = $("plot").querySelector("svg"); if (!src) return;
+  const [, , W, H] = src.getAttribute("viewBox").split(" ").map(Number), k = 2;
+  const clone = src.cloneNode(true);
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  clone.setAttribute("width", W * k); clone.setAttribute("height", H * k);
+  clone.setAttribute("font-family", 'Inter, "Helvetica Neue", Arial, sans-serif');
+  const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  bg.setAttribute("width", W); bg.setAttribute("height", H); bg.setAttribute("fill", css("--bg"));
+  clone.insertBefore(bg, clone.firstChild);
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement("canvas"); c.width = W * k; c.height = H * k;
+    c.getContext("2d").drawImage(img, 0, 0);
+    c.toBlob(b => {
+      const a = document.createElement("a"), ax = i => meta[$(i).value].name.replace(/[^A-Za-z0-9]+/g, "_");
+      a.href = URL.createObjectURL(b); a.download = `dt_landscape_${ax("xSel")}_vs_${ax("ySel")}.png`;
+      document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    }, "image/png");
+  };
+  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(clone));
+};
 
 // ---------- tooltip
 function showTip(ev, d) {

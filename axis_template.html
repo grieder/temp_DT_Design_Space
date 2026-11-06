@@ -188,17 +188,23 @@ function loadProposals() {
   if (!REPO_URL) { box.textContent = "The list appears once the repository is connected."; return; }
   const repo = REPO_URL.replace(/^https?:\/\/github\.com\//, "");
   const all = `${REPO_URL}/issues?q=${encodeURIComponent("is:issue is:open label:axis-proposal")}`;
-  fetch(`https://api.github.com/repos/${repo}/issues?state=open&labels=axis-proposal&per_page=50`, {headers: {Accept: "application/vnd.github+json"}})
-    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  // Read all open issues and filter here, so a proposal still shows when the workflow has not labeled it yet
+  // (GitHub ignores labels in prefilled links from people without write access).
+  fetch(`https://api.github.com/repos/${repo}/issues?state=open&per_page=100`, {headers: {Accept: "application/vnd.github+json"}})
+    .then(r => { if (!r.ok) { const e = new Error(r.status); e.status = r.status; throw e; } return r.json(); })
     .then(list => {
-      list = list.filter(i => !i.pull_request).map(i => ({...i, up: i.reactions?.["+1"] || 0, down: i.reactions?.["-1"] || 0}))
+      list = list.filter(i => !i.pull_request && (i.labels.some(l => l.name === "axis-proposal") || /^axis proposal/i.test(i.title)))
+        .map(i => ({...i, up: i.reactions?.["+1"] || 0, down: i.reactions?.["-1"] || 0}))
         .sort((a, b) => (b.up - b.down) - (a.up - a.down));
       box.innerHTML = list.length ? list.map(i => `<div class="prop"><span><a href="${esc(i.html_url)}" target="_blank" rel="noopener">${esc(i.title)}</a>
           <span class="hint"> #${i.number}, ${i.comments} comment${i.comments === 1 ? "" : "s"}</span></span>
           <span class="votes">👍 ${i.up} &nbsp; 👎 ${i.down} &nbsp; <a href="${esc(i.html_url)}" target="_blank" rel="noopener">Vote on GitHub</a></span></div>`).join("")
         : `No open proposals yet. <a href="${esc(all)}" target="_blank" rel="noopener">View on GitHub</a>.`;
     })
-    .catch(() => { box.innerHTML = `Could not load the list (offline or GitHub rate limit). <a href="${esc(all)}" target="_blank" rel="noopener">View open proposals on GitHub</a>.`; });
+    .catch(e => {
+      const why = e.status === 403 || e.status === 429 ? "GitHub is limiting requests from this network (60 per hour). Try again later" : e.status === 404 ? "The repository was not found or is private" : "GitHub could not be reached";
+      box.innerHTML = `Could not load the list: ${why}. <a href="${esc(all)}" target="_blank" rel="noopener">View open proposals on GitHub</a>.`;
+    });
 }
 
 // ---------- form <-> axis object
