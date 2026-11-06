@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Digital Twin Design Landscape</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+:root {
+  --bg: #ffffff;
+  --surface: #f5f7f9;
+  --ink: #15181d;
+  --muted: #5b6573;
+  --rule: #d9dee5;
+  --grid: #e7ebf0;
+  --accent: #2a6f97;
+  --vvuq: #c8102e;
+  --focus: #2a6f97;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151a; --surface: #1b2027; --ink: #e9edf2; --muted: #9aa5b3;
+    --rule: #2e3540; --grid: #252b34; --accent: #7cc0e6; --vvuq: #ff6b7d;
+    --focus: #7cc0e6; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151a; --surface: #1b2027; --ink: #e9edf2; --muted: #9aa5b3;
+  --rule: #2e3540; --grid: #252b34; --accent: #7cc0e6; --vvuq: #ff6b7d;
+  --focus: #7cc0e6; color-scheme: dark;
+}
+:root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px; line-height: 1.5;
+}
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+header { padding: 40px 0 8px; }
+h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 800; letter-spacing: -0.02em; margin: 0 0 8px; line-height: 1.1; }
+.lede { color: var(--muted); max-width: 70ch; margin: 0; }
+h2 { font-size: 22px; font-weight: 700; margin: 48px 0 6px; letter-spacing: -0.01em; }
+.sub { color: var(--muted); margin: 0 0 16px; max-width: 75ch; }
+
+/* explorer */
+.explorer { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; }
+@media (max-width: 920px) { .explorer { grid-template-columns: 1fr; } }
+.controls { display: flex; flex-wrap: wrap; gap: 12px 18px; margin: 16px 0 8px; align-items: end; }
+.control { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
+select, input[type="number"], textarea {
+  font: inherit; font-size: 14px; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--rule); border-radius: 6px; padding: 6px 8px;
+}
+input[type="range"] { width: 120px; accent-color: var(--accent); }
+.toggle { flex-direction: row; align-items: center; gap: 6px; color: var(--ink); font-weight: 500; }
+.toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
+.plotbox { position: relative; width: 100%; }
+#plot svg { display: block; width: 100%; height: auto; overflow: visible; }
+#plot text { font-family: inherit; }
+.tooltip {
+  position: absolute; pointer-events: none; background: var(--bg); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; font-size: 13px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.12); opacity: 0; transition: opacity .12s; max-width: 260px; z-index: 5;
+}
+.tooltip b { font-size: 14px; }
+.tooltip table { border-collapse: collapse; margin-top: 6px; }
+.tooltip td { padding: 1px 8px 1px 0; }
+.tooltip td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+aside.fingerprint { background: var(--surface); border-radius: 10px; padding: 16px; position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); }
+aside h3 { margin: 0 0 2px; font-size: 18px; font-weight: 700; }
+aside .ref { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
+aside .hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+#spider svg { width: 100%; height: auto; display: block; }
+
+/* table */
+.tablewrap { overflow-x: auto; border-top: 2px solid var(--ink); }
+table.data { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+table.data th, table.data td { padding: 8px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+table.data th:first-child, table.data td:first-child, table.data th:nth-child(2), table.data td:nth-child(2) { text-align: left; }
+table.data th { font-size: 13px; font-weight: 700; cursor: pointer; user-select: none; position: relative; }
+table.data th[aria-sort="ascending"]::after { content: " \25B2"; font-size: 10px; }
+table.data th[aria-sort="descending"]::after { content: " \25BC"; font-size: 10px; }
+table.data tbody tr:hover { background: var(--surface); }
+table.data tr.sel { background: var(--surface); outline: 2px solid var(--accent); outline-offset: -2px; }
+table.data td.name { font-weight: 600; }
+.status { font-size: 12px; color: var(--muted); }
+.cell-vvuq { color: var(--vvuq); font-weight: 700; }
+.lbl { display: inline-block; min-width: 1.6em; text-align: center; border-radius: 4px; padding: 0 4px; font-size: 12px; font-weight: 700; background: var(--surface); }
+
+/* place your system */
+.place { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+@media (max-width: 920px) { .place { grid-template-columns: 1fr; } }
+.card { background: var(--surface); border-radius: 10px; padding: 20px; }
+.card h3 { margin: 0 0 6px; font-size: 17px; }
+.card p { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+.grid7 { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.grid7 label { font-size: 13px; font-weight: 600; display: flex; flex-direction: column; gap: 4px; color: var(--muted); }
+button {
+  font: inherit; font-size: 14px; font-weight: 600; border-radius: 6px; padding: 8px 14px; cursor: pointer;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--bg);
+}
+button.secondary { background: transparent; color: var(--accent); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+textarea { width: 100%; min-height: 110px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+.msg { font-size: 13px; margin-top: 8px; min-height: 1.2em; }
+.msg.err { color: var(--vvuq); }
+ol.steps { padding-left: 1.2em; margin: 0; }
+ol.steps li { margin-bottom: 8px; font-size: 14px; }
+footer { color: var(--muted); font-size: 13px; padding: 48px 0 40px; border-top: 1px solid var(--rule); margin-top: 56px; }
+.legend { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 6px 0 0; }
+.legend svg { vertical-align: -3px; margin-right: 4px; }
+.banner { background: #fff4d6; color: #5c4400; border-bottom: 1px solid #e8d49a; font-size: 14px; font-weight: 600; text-align: center; padding: 8px 16px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .banner { background: #3a2f12; color: #f3dc9b; border-color: #5c4a1c; } }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Digital Twin Design Landscape</h1>
+  <p class="lede">Digital twins and related systems in chemistry, materials science, and quantum information science, scored on six design axes. Choose what each plot dimension shows, compare fingerprints, and place your own system on the map.</p>
+</header>
+
+<h2 id="explore">Explore the landscape</h2>
+<p class="sub">Hover a point for its scores; click a point or a table row to show its fingerprint. Axis 4 is a base-10 logarithm.</p>
+
+<div class="controls" role="group" aria-label="Plot settings">
+  <label class="control">X axis <select id="xSel"></select></label>
+  <label class="control">Y axis <select id="ySel"></select></label>
+  <label class="control">Color <select id="cSel"></select></label>
+  <label class="control">Marker size <select id="sSel"></select></label>
+  <label class="control">Label size <input type="range" id="labelSize" min="9" max="22" value="13"></label>
+  <label class="control">Marker scale <input type="range" id="markerScale" min="0.5" max="2" step="0.1" value="1"></label>
+  <label class="control toggle"><input type="checkbox" id="showLabels" checked> Labels</label>
+  <label class="control toggle"><input type="checkbox" id="showRef" checked> Reference anchors</label>
+  <label class="control toggle"><input type="checkbox" id="showCand"> Candidates</label>
+  <label class="control toggle"><input type="checkbox" id="showComm" checked> Community submissions</label>
+</div>
+
+<div class="explorer">
+  <div>
+  <div class="plotbox"><div id="plot"></div><div class="tooltip" id="tip" role="status"></div></div>
+  <p class="legend" id="legend"></p>
+  </div>
+  <aside class="fingerprint" aria-live="polite">
+    <h3 id="fpName">Fingerprint</h3>
+    <p class="ref" id="fpRef">Select a system to see its six-axis profile.</p>
+    <div id="spider"></div>
+    <p class="hint" id="bandHint"></p>
+  </aside>
+</div>
+
+<h2 id="table">Scores</h2>
+<p class="sub">Select a column header to sort.</p>
+<div class="tablewrap"><table class="data" id="tbl"></table></div>
+
+<h2 id="place">Place your system</h2>
+<p class="sub">Your system is drawn as a star on the plot and added to the table. Nothing you enter here leaves your browser.</p>
+<div class="place">
+  <div class="card">
+    <h3>Enter scores</h3>
+    <p>Score each axis with the rubric, then add the system to the map.</p>
+    <div class="grid7" id="manual"></div>
+    <div class="row">
+      <label class="control" style="flex:1 1 180px">Name <input type="text" id="mName" value="My system" style="font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--rule);border-radius:6px;background:var(--bg);color:var(--ink)"></label>
+    </div>
+    <div class="row" style="margin-top:12px"><button id="addManual">Add to map</button><button class="secondary" id="clearNew">Remove added systems</button></div>
+    <div class="msg" id="mMsg"></div>
+  </div>
+  <div class="card">
+    <h3>Load scores from the scoring skill</h3>
+    <p>The scoring skill reads a manuscript and returns a JSON score file. Load that file, or paste its contents, to place the system.</p>
+    <ol class="steps">
+      <li>Download the <a href="#" id="skillLink">scoring skill</a> and add it to Claude.</li>
+      <li>Upload your manuscript to Claude and ask it to score the system.</li>
+      <li>Load the JSON file it returns here.</li>
+    </ol>
+    <div class="row" style="margin:10px 0"><input type="file" id="jsonFile" accept=".json,application/json"></div>
+    <label class="vh" for="jsonText">Paste score JSON</label>
+    <textarea id="jsonText" placeholder='{"name": "My twin", "scores": {"1": 1.2, "2": 1.5, "3": 0.8, "4": 1.0, "5": 2.0, "6": 1.0}}'></textarea>
+    <div class="row" style="margin-top:10px"><button id="addJson">Add pasted scores</button></div>
+    <div class="msg" id="jMsg"></div>
+  </div>
+</div>
+
+<h2 id="submit">Submit for review</h2>
+<p class="sub">Submit a system you added so it appears for everyone. It is listed as pending until the maintainers check the scores against the source paper, then marked as verified.</p>
+<div class="card">
+  <div class="row">
+    <label class="control">System to submit <select id="subSel"></select></label>
+    <button id="submitBtn">Open submission form</button>
+    <button class="secondary" id="downloadBtn">Download score file</button>
+  </div>
+  <div class="msg" id="sMsg"></div>
+  <p style="margin-top:12px" id="subInfo">Submissions open a GitHub issue with your scores filled in. Include the DOI and, ideally, the evidence and basis (E/I/T) for each score that the skill returns. To propose a new axis instead, use the <a href="#" id="axisLink">axis proposal form</a>.</p>
+</div>
+
+<footer>
+  Scores follow rubric v<span id="ver"></span> (Appendix A of Grieder and Qian, “What Makes a Digital Twin?”). Rationales, source evidence, and contribution guidelines are in the open rubric repository.
+</footer>
+</div>
+
+<script>
+const DATA = {"version": "0.9", "statuses": {"anchor": "Anchor (in the manuscript)", "reference": "Reference anchor (skill calibration, not in the manuscript)", "candidate": "Candidate anchor", "community-verified": "Community submission, verified by maintainers", "community-pending": "Community submission, awaiting review"}, "axis_order": ["1", "2", "3", "4", "5", "6"], "axes": {"1": {"name": "Coupling", "short": "Coupling", "label": "Bidirectional Coupling (Loop Closure)", "min": 0, "max": 2, "scale": "linear", "ticks": [[0, "Digital Model"], [1, "Digital Shadow"], [2, "Digital Twin"]], "cbar": ["Decoupled / Offline", "Tightly Coupled (Twin)"]}, "2": {"name": "Fidelity", "short": "Surrogate→Mirror", "label": "Forward-Model Fidelity", "min": 0, "max": 2, "scale": "linear", "ticks": [[0, "Surrogate"], [1, "Hybrid"], [2, "Faithful Mirror"]], "cbar": ["Surrogate", "Faithful Mirror"]}, "3": {"name": "Cost side", "short": "Cost Side", "label": "Cost Side", "min": -2, "max": 2, "scale": "diverging", "ticks": [[-2, "Digital"], [0, "Comparable"], [2, "Physical"]], "cbar": ["Digital", "Physical"]}, "4": {"name": "Model dimensionality", "short": "Model Dimensionality", "label": "Model Dimensionality (log₁₀ N)", "min": 0, "max": 9, "scale": "log10", "ticks": null, "cbar": ["0", "9"], "note": "log10 of parameters fitted to data from the system's own campaign (measured or computed)"}, "5": {"name": "VVUQ", "short": "VVUQ", "label": "VVUQ Maturity", "min": 0, "max": 4, "scale": "ladder", "ticks": [[0, "None"], [1, "Point"], [2, "Val. or UQ"], [3, "Val. + UQ"], [4, "Credibility"]], "cbar": ["None", "Credibility"]}, "6": {"name": "Autonomy", "short": "Autonomy", "label": "Autonomy", "min": 0, "max": 2, "scale": "linear", "ticks": [[0, "Human-in-the-Loop"], [1, "Semi-autonomous"], [2, "Autonomous"]], "cbar": ["Human-in-the-Loop", "Autonomous"]}}, "systems": [{"name": "DTCS", "ref": "Qian et al., Nat. Comput. Sci. 2025", "status": "anchor", "scores": {"1": 1.0, "2": 1.7, "3": 1.5, "4": 0.8, "5": 2.0, "6": 1.0}}, {"name": "Bayesian Conav.", "ref": "Slautin et al., ACS Nano 2026", "status": "anchor", "scores": {"1": 2.0, "2": 1.1, "3": 0.2, "4": 0.5, "5": 2.5, "6": 1.8}}, {"name": "MATTERIX", "ref": "Darvish et al., Nat. Comput. Sci. 2026", "status": "anchor", "scores": {"1": 1.0, "2": 1.2, "3": 0.7, "4": 0.0, "5": 1.3, "6": 0.9}}, {"name": "A-Lab", "ref": "Szymanski et al., Nature 2023", "status": "anchor", "scores": {"1": 1.3, "2": 0.9, "3": 1.8, "4": 7.3, "5": 2.3, "6": 1.7}}, {"name": "CatDT", "ref": "Song et al., arXiv 2026", "status": "anchor", "scores": {"1": 0.0, "2": 1.4, "3": -1.6, "4": 5.0, "5": 2.0, "6": 1.8}}, {"name": "Li-ion battery", "ref": "Wang et al., Nature 2022", "status": "anchor", "scores": {"1": 0.3, "2": 1.8, "3": 1.4, "4": 0.7, "5": 1.8, "6": 0.2}}, {"name": "Raman DT", "ref": "Kowalski & Liang, ACS AMI 2026", "status": "anchor", "scores": {"1": 0.0, "2": 1.9, "3": 1.5, "4": 0.0, "5": 2.0, "6": 0.1}}, {"name": "QCloudSim", "ref": "Luo et al., SIGSIM-PADS 2025", "status": "anchor", "scores": {"1": 0.2, "2": 0.3, "3": 1.6, "4": 0.0, "5": 0.3, "6": 0.3}}, {"name": "C³", "ref": "Wittler et al., PR Applied 2021", "status": "anchor", "scores": {"1": 1.0, "2": 1.3, "3": 0.8, "4": 1.3, "5": 2.5, "6": 1.2}}, {"name": "LTME", "ref": "Sentz et al., Quantum 2026", "status": "anchor", "scores": {"1": 0.0, "2": 1.3, "3": 1.2, "4": 2.3, "5": 1.8, "6": 0.3}}, {"name": "CAMEO", "ref": "Kusne et al., Nat. Commun. 2020", "status": "reference", "scores": {"1": 1.4, "2": 0.5, "3": 1.6, "4": 1.0, "5": 2.5, "6": 1.2}}, {"name": "Liu 2022", "ref": "Liu et al., Nat. Mach. Intell. 2022", "status": "reference", "scores": {"1": 1.8, "2": 0.2, "3": 1.5, "4": 6.0, "5": 2.3, "6": 1.6}}, {"name": "Mobile robotic chemist", "ref": "Burger et al., Nature 2020", "status": "reference", "scores": {"1": 1.3, "2": 0.0, "3": 1.8, "4": 1.1, "5": 2.0, "6": 1.9}}, {"name": "Dai 2024", "ref": "Dai et al., Nature 2024", "status": "reference", "scores": {"1": 0.0, "2": 0.0, "3": 1.8, "4": 0.0, "5": 1.0, "6": 1.7}}, {"name": "Koscher 2023", "ref": "Koscher et al., Science 2023", "status": "reference", "scores": {"1": 1.3, "2": 0.1, "3": 1.7, "4": 6.0, "5": 2.5, "6": 1.6}}, {"name": "VDMN", "ref": "Robertson et al., arXiv 2025", "status": "reference", "scores": {"1": 0.0, "2": 1.3, "3": 1.5, "4": 4.1, "5": 3.0, "6": 0.1}}, {"name": "Müller 2025", "ref": "Mueller et al., arXiv 2025", "status": "reference", "scores": {"1": 0.5, "2": 1.2, "3": 1.3, "4": 0.6, "5": 2.3, "6": 0.3}}]};
+
+// Repository that receives community submissions (GitHub issue forms).
+const REPO_URL = "";   // empty: submissions not open yet
+const SKILL_URL = "";  // empty: skill shared as a file alongside the page
+
+// Everything about the axes comes from anchors.json, so a new axis needs only
+// a data change: axis_order, axes[*].{label, short, min, max, scale, ticks, cbar}.
+const meta = DATA.axes;
+const AX = DATA.axis_order;
+const AXIS_INFO = Object.fromEntries(AX.map(a => [a, {label: meta[a].label,
+  ticks: meta[a].ticks, diverging: meta[a].scale === "diverging"}]));
+const SPOKE = Object.fromEntries(AX.map(a => [a, meta[a].short]));
+const BANDED = AX.filter(a => meta[a].highlight_band);
+const SYMBOL = {"anchor": d3.symbolCircle, "reference": d3.symbolWye, "candidate": d3.symbolSquare,
+  "community-verified": d3.symbolDiamond, "community-pending": d3.symbolTriangle, "new": d3.symbolStar};
+const STATUS_TEXT = {...DATA.statuses, "new": "Added in this browser"};
+let added = [];
+let selected = null;
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const $ = id => document.getElementById(id);
+$("ver").textContent = DATA.version;
+
+// ---------- controls
+function fillSelect(sel, value, withNone) {
+  if (withNone) sel.append(new Option("Uniform", "none"));
+  AX.forEach(a => sel.append(new Option(`${a}. ${AXIS_INFO[a].label}`, a)));
+  sel.value = value;
+}
+fillSelect($("xSel"), "1"); fillSelect($("ySel"), "2");
+fillSelect($("cSel"), "6"); fillSelect($("sSel"), "none", true);
+["xSel","ySel","cSel","sSel","labelSize","markerScale","showLabels","showRef","showCand","showComm"].forEach(id =>
+  $(id).addEventListener("input", draw));
+
+function systems() {
+  const base = DATA.systems.filter(s => s.status === "anchor" ||
+    (s.status === "reference" && $("showRef").checked) ||
+    (s.status === "candidate" && $("showCand").checked) ||
+    (s.status.startsWith("community") && $("showComm").checked));
+  return base.concat(added);
+}
+function colorScale(a) {
+  const {min, max} = meta[a];
+  if (AXIS_INFO[a].diverging) return d3.scaleSequential(t => d3.interpolateRdBu(1 - t)).domain([min, max]);
+  return d3.scaleSequential(d3.interpolateViridis).domain([min, max]);
+}
+function ticksFor(a, scale) {
+  return AXIS_INFO[a].ticks || scale.ticks(6).map(v => [v, d3.format("~g")(v)]);
+}
+
+// ---------- scatter
+function draw() {
+  const W = 760, H = 600, m = {t: 20, r: 30, b: 120, l: 120};
+  const xa = $("xSel").value, ya = $("ySel").value, ca = $("cSel").value, sa = $("sSel").value;
+  const lsize = +$("labelSize").value, mscale = +$("markerScale").value;
+  const data = systems();
+  const pad = a => (meta[a].max - meta[a].min) * 0.06;
+  const x = d3.scaleLinear([meta[xa].min - pad(xa), meta[xa].max + pad(xa)], [m.l, W - m.r]);
+  const y = d3.scaleLinear([meta[ya].min - pad(ya), meta[ya].max + pad(ya)], [H - m.b, m.t]);
+  const col = colorScale(ca);
+  const size = sa === "none" ? () => 11 * mscale
+    : d => (5 + 12 * (d.scores[sa] - meta[sa].min) / (meta[sa].max - meta[sa].min)) * mscale;
+
+  const svg = d3.select("#plot").selectAll("svg").data([0]).join("svg")
+    .attr("viewBox", `0 0 ${W} ${H}`).attr("role", "img")
+    .attr("aria-label", `Scatter of ${AXIS_INFO[ya].label} against ${AXIS_INFO[xa].label}`);
+  svg.selectAll("*").remove();
+  const ink = css("--ink"), muted = css("--muted"), grid = css("--grid");
+
+  // grid and guides
+  const g = svg.append("g");
+  ticksFor(xa, x).forEach(([v]) => g.append("line").attr("x1", x(v)).attr("x2", x(v)).attr("y1", m.t).attr("y2", H - m.b).attr("stroke", grid));
+  ticksFor(ya, y).forEach(([v]) => g.append("line").attr("y1", y(v)).attr("y2", y(v)).attr("x1", m.l).attr("x2", W - m.r).attr("stroke", grid));
+  svg.append("rect").attr("x", m.l).attr("y", m.t).attr("width", W - m.l - m.r).attr("height", H - m.t - m.b)
+    .attr("fill", "none").attr("stroke", ink).attr("stroke-width", 1.5);
+
+  // tick labels
+  ticksFor(xa, x).forEach(([v, t]) => svg.append("text").attr("x", x(v)).attr("y", H - m.b + 22)
+    .attr("text-anchor", "middle").attr("font-size", 13).attr("font-weight", 600).attr("fill", ink).text(t));
+  ticksFor(ya, y).forEach(([v, t]) => svg.append("text").attr("x", m.l - 10).attr("y", y(v)).attr("dy", "0.35em")
+    .attr("text-anchor", "end").attr("font-size", 13).attr("font-weight", 600).attr("fill", ink).text(t));
+  svg.append("text").attr("x", (m.l + W - m.r) / 2).attr("y", H - m.b + 56).attr("text-anchor", "middle")
+    .attr("font-size", 17).attr("font-weight", 700).attr("fill", ink).text(AXIS_INFO[xa].label);
+  svg.append("text").attr("transform", `translate(28,${(m.t + H - m.b) / 2}) rotate(-90)`).attr("text-anchor", "middle")
+    .attr("font-size", 17).attr("font-weight", 700).attr("fill", ink).text(AXIS_INFO[ya].label);
+
+  // color bar
+  const cbW = 300, cbX = (m.l + W - m.r) / 2 - cbW / 2, cbY = H - 34;
+  const gradId = "grad" + ca;
+  const grad = svg.append("defs").append("linearGradient").attr("id", gradId);
+  d3.range(0, 1.01, 0.1).forEach(t => grad.append("stop").attr("offset", t)
+    .attr("stop-color", col(meta[ca].min + t * (meta[ca].max - meta[ca].min))));
+  svg.append("rect").attr("x", cbX).attr("y", cbY).attr("width", cbW).attr("height", 12)
+    .attr("fill", `url(#${gradId})`).attr("stroke", ink);
+  svg.append("text").attr("x", cbX - 10).attr("y", cbY + 10).attr("text-anchor", "end").attr("font-size", 13)
+    .attr("font-weight", 700).attr("fill", ink).text(AXIS_INFO[ca].label);
+  const ends = AXIS_INFO[ca].ticks ? [AXIS_INFO[ca].ticks[0][1], AXIS_INFO[ca].ticks.at(-1)[1]] : [meta[ca].min, meta[ca].max];
+  svg.append("text").attr("x", cbX).attr("y", cbY + 28).attr("font-size", 12).attr("fill", muted).text(ends[0]);
+  svg.append("text").attr("x", cbX + cbW).attr("y", cbY + 28).attr("text-anchor", "end").attr("font-size", 12).attr("fill", muted).text(ends[1]);
+
+  // points
+  const symbol = d => SYMBOL[d.status] || d3.symbolCircle;
+  const pts = svg.append("g").selectAll("path").data(data).join("path")
+    .attr("transform", d => `translate(${x(d.scores[xa])},${y(d.scores[ya])})`)
+    .attr("d", d => d3.symbol(symbol(d), Math.PI * size(d) ** 2 * (d.status === "new" ? 1.6 : 1))())
+    .attr("fill", d => d.status === "community-pending" ? "none" : col(d.scores[ca]))
+    .attr("stroke", d => d === selected ? ink : d.status === "community-pending" ? col(d.scores[ca]) : muted)
+    .attr("stroke-width", d => d === selected ? 2.5 : d.status === "community-pending" ? 2.5 : 0.7)
+    .attr("pointer-events", "all")      // hollow pending markers stay clickable
+    .attr("tabindex", 0).attr("role", "button").attr("aria-label", d => d.name)
+    .style("cursor", "pointer")
+    .on("mouseenter focus", (ev, d) => showTip(ev, d))
+    .on("mouseleave blur", hideTip)
+    .on("click keydown", (ev, d) => { if (ev.type === "click" || ev.key === "Enter") select(d); });
+
+  // labels with simple overlap avoidance (greedy, 8 candidate positions)
+  if ($("showLabels").checked) {
+    const placed = [];
+    const charW = lsize * 0.58;
+    const order = [...data].sort((a, b) => y(a.scores[ya]) - y(b.scores[ya]));
+    for (const d of order) {
+      const px = x(d.scores[xa]), py = y(d.scores[ya]), r = size(d) + 4;
+      const w = d.name.length * charW, h = lsize * 1.15;
+      const cands = [[r, -h / 2, "start"], [-r, -h / 2, "end"], [r, -h - 2, "start"], [r, 2, "start"],
+                     [-r, -h - 2, "end"], [-r, 2, "end"], [-w / 2, -r - h, "middle"], [-w / 2, r, "middle"]];
+      let best = null;
+      for (const [dx, dy, anchor] of cands) {
+        const x0 = anchor === "end" ? px + dx - w : anchor === "middle" ? px - w / 2 : px + dx;
+        const box = {x0, y0: py + dy, x1: x0 + w, y1: py + dy + h};
+        let cost = 0;
+        for (const b of placed) cost += Math.max(0, Math.min(box.x1, b.x1) - Math.max(box.x0, b.x0)) * Math.max(0, Math.min(box.y1, b.y1) - Math.max(box.y0, b.y0));
+        for (const q of data) {
+          const qx = x(q.scores[xa]), qy = y(q.scores[ya]);
+          if (qx > box.x0 - 4 && qx < box.x1 + 4 && qy > box.y0 - 4 && qy < box.y1 + 4) cost += 400;
+        }
+        if (box.x1 > W - 4 || box.x0 < m.l - 60) cost += 2000;
+        if (!best || cost < best.cost) best = {cost, box, anchor};
+      }
+      placed.push(best.box);
+      const tx = best.anchor === "end" ? best.box.x1 : best.anchor === "middle" ? (best.box.x0 + best.box.x1) / 2 : best.box.x0;
+      svg.append("text").attr("x", tx).attr("y", best.box.y0 + h * 0.78).attr("text-anchor", best.anchor)
+        .attr("font-size", lsize).attr("font-weight", d.status === "new" ? 800 : 700)
+        .attr("fill", ink).attr("paint-order", "stroke").attr("stroke", css("--bg")).attr("stroke-width", 3)
+        .attr("pointer-events", "none").text(d.name);
+    }
+  }
+  drawTable();
+}
+
+// ---------- tooltip
+function showTip(ev, d) {
+  const tip = $("tip");
+  const rows = AX.map(a => `<tr><td>${a}. ${SPOKE[a]}</td><td>${scoreText(a, d)}</td></tr>`).join("");
+  tip.innerHTML = `<b>${esc(d.name)}</b><br><span style="color:var(--muted)">${esc(d.ref || "Added system")}<br>${esc(STATUS_TEXT[d.status] || d.status)}</span><table>${rows}</table>`;
+  const box = $("plot").getBoundingClientRect(), r = ev.target.getBoundingClientRect();
+  let left = r.left - box.left + 16, top = r.top - box.top - 10;
+  if (left > box.width - 270) left = r.left - box.left - 270;
+  tip.style.left = left + "px"; tip.style.top = Math.max(0, top) + "px"; tip.style.opacity = 1;
+}
+function hideTip() { $("tip").style.opacity = 0; }
+// Score text; an axis may name a suffix_field in anchors.json to print a label after its score.
+const scoreText = (a, d) => {
+  const f = meta[a].suffix_field, lab = f && d[f];
+  return fmt(a, d.scores[a]) + (lab && lab !== "-" ? ` [${lab}]` : "");
+};
+const fmt = (a, v) => meta[a].scale === "diverging" ? (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(1) : v.toFixed(1);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+// ---------- fingerprint
+function select(d) { selected = d; drawSpider(d); draw(); }
+function drawSpider(d) {
+  $("fpName").textContent = d ? d.name : "Fingerprint";
+  $("fpRef").textContent = d ? (d.ref || "Added system") : "Select a system to see its six-axis profile.";
+  const S = 300, c = S / 2, R = 100, n = AX.length;
+  const ang = i => -Math.PI / 2 + 2 * Math.PI * i / n;      // clockwise from top
+  const pt = (i, r) => [c + r * Math.cos(ang(i)), c + r * Math.sin(ang(i))];
+  const svg = d3.select("#spider").selectAll("svg").data([0]).join("svg").attr("viewBox", `-60 10 ${S + 120} ${S - 20}`)
+    .attr("role", "img").attr("aria-label", d ? `Fingerprint of ${d.name}` : "Fingerprint key");
+  svg.selectAll("*").remove();
+  const ink = css("--ink"), vv = css("--vvuq");
+  const half = Math.PI / n * 0.55;
+  const norm = (a, v) => Math.min(1, Math.max(0, (v - meta[a].min) / (meta[a].max - meta[a].min)));
+  BANDED.forEach(a => {
+    const vi = AX.indexOf(a), [b0, b1] = meta[a].highlight_band.map(v => norm(a, v));
+    const band = [[b0, -half], [b1, -half], [b1, half], [b0, half]]
+      .map(([r, da]) => [c + R * r * Math.cos(ang(vi) + da), c + R * r * Math.sin(ang(vi) + da)]);
+    svg.append("polygon").attr("points", band.join(" ")).attr("fill", vv).attr("opacity", 0.2);
+  });
+  [0.5, 1].forEach(r => svg.append("polygon").attr("points", AX.map((_, i) => pt(i, R * r)).join(" "))
+    .attr("fill", "none").attr("stroke", ink).attr("stroke-width", 1.2));
+  AX.forEach((a, i) => {
+    svg.append("line").attr("x1", c).attr("y1", c).attr("x2", pt(i, R)[0]).attr("y2", pt(i, R)[1]).attr("stroke", ink);
+    const [lx, ly] = pt(i, R + 16), cx = Math.cos(ang(i));
+    svg.append("text").attr("x", lx).attr("y", ly).attr("dy", "0.35em")
+      .attr("text-anchor", Math.abs(cx) < 0.2 ? "middle" : cx > 0 ? "start" : "end")
+      .attr("font-size", 12).attr("font-weight", 700).attr("fill", BANDED.includes(a) ? vv : ink).text(SPOKE[a]);
+  });
+  if (!d) return;
+  const col = colorScale($("cSel").value)(d.scores[$("cSel").value]);
+  const poly = AX.map((a, i) => pt(i, R * norm(a, d.scores[a])));
+  svg.append("polygon").attr("points", poly.join(" ")).attr("fill", col).attr("fill-opacity", 0.45)
+    .attr("stroke", d3.color(col).darker(0.6)).attr("stroke-width", 3).attr("stroke-linejoin", "miter");
+}
+
+// ---------- table
+let sortKey = "name", sortDir = 1;
+function drawTable() {
+  const rows = systems().slice().sort((a, b) => {
+    const va = sortKey === "name" ? a.name : sortKey === "status" ? a.status : a.scores[sortKey];
+    const vb = sortKey === "name" ? b.name : sortKey === "status" ? b.status : b.scores[sortKey];
+    return (va > vb ? 1 : va < vb ? -1 : 0) * sortDir;
+  });
+  const cols = [["name", "System"], ["status", "Status"], ...AX.map(a => [a, `${a}. ${SPOKE[a]}`])];
+  const t = d3.select("#tbl"); t.selectAll("*").remove();
+  t.append("thead").append("tr").selectAll("th").data(cols).join("th")
+    .attr("scope", "col").attr("tabindex", d => d[0] === "lbl" ? null : 0)
+    .attr("aria-sort", d => d[0] === sortKey ? (sortDir > 0 ? "ascending" : "descending") : null)
+    .text(d => d[1])
+    .on("click keydown", (ev, d) => {
+      if (d[0] === "lbl" || (ev.type === "keydown" && ev.key !== "Enter")) return;
+      sortDir = sortKey === d[0] ? -sortDir : (d[0] === "name" || d[0] === "status" ? 1 : -1);
+      sortKey = d[0]; drawTable();
+    });
+  const tr = t.append("tbody").selectAll("tr").data(rows).join("tr")
+    .attr("class", d => d === selected ? "sel" : null).style("cursor", "pointer")
+    .on("click", (ev, d) => select(d));
+  tr.append("td").attr("class", "name").text(d => d.name);
+  tr.append("td").attr("class", "status").text(d => ({"new": "added here", "community-pending": "pending review",
+    "anchor": "manuscript", "reference": "reference",
+    "community-verified": "community, verified"})[d.status] || d.status);
+  AX.forEach(a => tr.append("td").attr("class", BANDED.includes(a) ? "cell-vvuq" : null).text(d => scoreText(a, d)));
+}
+
+// ---------- place your system
+const mGrid = d3.select("#manual");
+AX.forEach(a => {
+  const l = mGrid.append("label").text(`${a}. ${SPOKE[a]} (${meta[a].min} to ${meta[a].max})`);
+  l.append("input").attr("type", "number").attr("id", "m" + a).attr("step", 0.1)
+    .attr("min", meta[a].min).attr("max", meta[a].max).attr("value", meta[a].min < 0 ? 0 : meta[a].min);
+});
+function validate(obj) {
+  if (!obj || typeof obj !== "object") throw new Error("The file is not a JSON object.");
+  if (!obj.name) throw new Error("The scores need a \"name\" field.");
+  if (!obj.scores) throw new Error("The scores need a \"scores\" object with keys \"1\" to \"7\".");
+  const scores = {};
+  for (const a of AX) {
+    const v = Number(obj.scores[a]);
+    if (!Number.isFinite(v)) throw new Error(`Axis ${a} is missing or not a number.`);
+    if (v < meta[a].min || v > meta[a].max) throw new Error(`Axis ${a} is ${v}; it must be between ${meta[a].min} and ${meta[a].max}.`);
+    scores[a] = v;
+  }
+  return {...obj, name: String(obj.name), ref: obj.ref || "Added system", status: "new", scores};
+}
+function addSystems(objs, msgEl) {
+  try {
+    const list = (Array.isArray(objs) ? objs : [objs]).map(validate);
+    added = added.concat(list); selected = list.at(-1); refreshSubmit();
+    drawSpider(selected); draw();
+    msgEl.className = "msg"; msgEl.textContent = `Added ${list.map(s => s.name).join(", ")} to the map.`;
+  } catch (e) { msgEl.className = "msg err"; msgEl.textContent = e.message; }
+}
+$("addManual").onclick = () => {
+  const scores = {}; AX.forEach(a => scores[a] = Number($("m" + a).value));
+  addSystems({name: $("mName").value || "My system", scores}, $("mMsg"));
+};
+$("addJson").onclick = () => {
+  try { addSystems(JSON.parse($("jsonText").value), $("jMsg")); }
+  catch (e) { $("jMsg").className = "msg err"; $("jMsg").textContent = "The pasted text is not valid JSON: " + e.message; }
+};
+$("jsonFile").onchange = ev => {
+  const f = ev.target.files[0]; if (!f) return;
+  f.text().then(txt => {
+    try { addSystems(JSON.parse(txt), $("jMsg")); }
+    catch (e) { $("jMsg").className = "msg err"; $("jMsg").textContent = `${f.name} is not valid JSON: ${e.message}`; }
+  });
+};
+function refreshSubmit() {
+  const sel = $("subSel"); sel.innerHTML = "";
+  if (!added.length) sel.append(new Option("Add a system above first", ""));
+  added.forEach((s, i) => sel.append(new Option(s.name, i)));
+}
+function chosen() {
+  const s = added[+$("subSel").value];
+  if (!s) { $("sMsg").className = "msg err"; $("sMsg").textContent = "Add a system with the forms above first."; }
+  return s;
+}
+$("downloadBtn").onclick = () => {
+  const s = chosen(); if (!s) return;
+  const payload = {...s, status: "community-pending", rubric_version: DATA.version};
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 1)], {type: "application/json"}));
+  a.download = s.name.replace(/[^A-Za-z0-9]+/g, "_") + "_scores.json";
+  document.body.append(a); a.click(); a.remove();
+  $("sMsg").className = "msg"; $("sMsg").textContent = `Saved ${a.download}.`;
+};
+if (!REPO_URL) {
+  $("submitBtn").hidden = true;
+  $("subInfo").textContent = "Submissions open when the repository goes live. Until then, download the score file and send it to the team.";
+}
+$("submitBtn").onclick = () => {
+  const s = chosen(); if (!s) return;
+  const payload = {...s, status: "community-pending", rubric_version: DATA.version};
+  const url = `${REPO_URL}/issues/new?template=submit-system.yml&title=${encodeURIComponent("Submission: " + s.name)}` +
+    `&scores=${encodeURIComponent(JSON.stringify(payload, null, 1))}`;
+  window.open(url, "_blank", "noopener");
+  $("sMsg").className = "msg"; $("sMsg").textContent = `Opened the submission form for ${s.name} in a new tab.`;
+};
+if (SKILL_URL) $("skillLink").href = SKILL_URL;
+else $("skillLink").replaceWith(document.createTextNode("scoring skill (digital-twin-scorer.skill, shared with this page)"));
+if (REPO_URL) $("axisLink").href = `${REPO_URL}/issues/new?template=propose-axis.yml`;
+$("clearNew").onclick = () => { added = []; refreshSubmit(); if (selected && selected.status === "new") selected = null; drawSpider(selected); draw(); $("mMsg").textContent = "Removed added systems."; $("mMsg").className = "msg"; };
+
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { draw(); drawSpider(selected); });
+function drawLegend() {
+  const shown = ["anchor", "reference", "candidate", "community-verified", "community-pending", "new"];
+  $("legend").innerHTML = shown.map(st => {
+    const p = d3.symbol(SYMBOL[st], 70)();
+    const pend = st === "community-pending";
+    return `<span><svg width="16" height="16" viewBox="-8 -8 16 16" aria-hidden="true"><path d="${p}" fill="${pend ? "none" : "currentColor"}" stroke="currentColor" stroke-width="${pend ? 1.6 : 0}"/></svg>${esc(STATUS_TEXT[st])}</span>`;
+  }).join("");
+  $("bandHint").textContent = BANDED.map(a => `The shaded band on the ${meta[a].short} spoke marks ${meta[a].highlight_note || "the highlighted range"} (${meta[a].highlight_band[0]} to ${meta[a].highlight_band[1]}).`).join(" ");
+}
+refreshSubmit(); drawLegend(); drawSpider(null); draw();
+</script>
+</body>
+</html>
