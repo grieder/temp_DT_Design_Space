@@ -120,6 +120,16 @@ footer { color: var(--muted); font-size: 13px; padding: 48px 0 40px; border-top:
 .legend svg { vertical-align: -3px; margin-right: 4px; }
 .banner { background: #fff4d6; color: #5c4400; border-bottom: 1px solid #e8d49a; font-size: 14px; font-weight: 600; text-align: center; padding: 8px 16px; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .banner { background: #3a2f12; color: #f3dc9b; border-color: #5c4a1c; } }
+.axdefs { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+.axdef { background: var(--surface); border-radius: 10px; padding: 16px 18px; }
+.axdef h3 { margin: 0 0 4px; font-size: 17px; }
+.axdef .rng { color: var(--muted); font-weight: 500; font-size: 13px; margin-left: 6px; }
+.axdef p { margin: 0 0 10px; font-size: 14px; }
+.axdef dl { margin: 0 0 10px; font-size: 14px; display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; }
+.axdef dt { font-weight: 700; font-variant-numeric: tabular-nums; }
+.axdef dt small { display: block; font-weight: 500; color: var(--muted); font-size: 12px; }
+.axdef dd { margin: 0; }
+.axdef .guide { color: var(--muted); font-size: 13px; margin: 0; }
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 </style>
 </head>
@@ -165,6 +175,10 @@ footer { color: var(--muted); font-size: 13px; padding: 48px 0 40px; border-top:
 <p class="sub">Select a column header to sort.</p>
 <div class="tablewrap"><table class="data" id="tbl"></table></div>
 
+<h2 id="axes">Axis definitions</h2>
+<p class="sub">What each axis measures and what each level means, from the rubric. Scores between two levels are intermediate values. <a href="#" id="rubricLink2">Full rubric and decision rules</a>.</p>
+<div class="axdefs" id="axdefs"></div>
+
 <h2 id="place">Place your system</h2>
 <p class="sub">Your system is drawn as a star on the plot and added to the table. Nothing you enter here leaves your browser.</p>
 <div class="place">
@@ -182,7 +196,7 @@ footer { color: var(--muted); font-size: 13px; padding: 48px 0 40px; border-top:
     <h3>Load scores from the scoring skill</h3>
     <p>The scoring skill reads a manuscript and returns a JSON score file. Load that file, or paste its contents, to place the system.</p>
     <ol class="steps">
-      <li>Download the <a href="#" id="skillLink">scoring skill</a> and add it to Claude.</li>
+      <li>Download the <a href="#" id="skillLink">scoring skill</a> and <a href="https://support.claude.com/en/articles/12512180-use-skills-in-claude" target="_blank" rel="noopener">add it to Claude</a>.</li>
       <li>Upload your manuscript to Claude and ask it to score the system.</li>
       <li>Load the JSON file it returns here.</li>
     </ol>
@@ -524,8 +538,10 @@ $("submitBtn").onclick = () => {
 };
 if (SKILL_URL) $("skillLink").href = SKILL_URL;
 else $("skillLink").replaceWith(document.createTextNode("scoring skill (digital-twin-scorer.skill, shared with this page)"));
-if (REPO_URL) $("rubricLink").href = `${REPO_URL}/blob/main/digital-twin-scorer/references/rubric.md`;
-else $("rubricLink").replaceWith(document.createTextNode("current rubric and decision rules (digital-twin-scorer/references/rubric.md)"));
+for (const id of ["rubricLink", "rubricLink2"]) {
+  if (REPO_URL) $(id).href = `${REPO_URL}/blob/main/digital-twin-scorer/references/rubric.md`;
+  else $(id).replaceWith(document.createTextNode("current rubric and decision rules (digital-twin-scorer/references/rubric.md)"));
+}
 $("axisBtn").onclick = () => window.open(AXIS_PAGE, "_blank", "noopener");
 $("clearNew").onclick = () => { added = []; refreshSubmit(); if (selected && selected.status === "new") selected = null; drawSpider(selected); draw(); $("mMsg").textContent = "Removed added systems."; $("mMsg").className = "msg"; };
 
@@ -538,6 +554,10 @@ function drawLegend() {
   }).join("");
   $("bandHint").textContent = BANDED.map(a => `The shaded band on the ${meta[a].short} spoke marks ${meta[a].highlight_note || "the highlighted range"} (${meta[a].highlight_band[0]} to ${meta[a].highlight_band[1]}).`).join(" ");
 }
+const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+$("axdefs").innerHTML = AX.map(a => { const m = meta[a]; return `<div class="axdef"><h3>${a}. ${esc(m.name)}<span class="rng">${m.min} to ${m.max}${m.scale === "log10" ? ", log10" : ""}</span></h3>
+  <p>${esc(m.description)}</p><dl>${m.levels.map(l => `<dt>${esc(l.value)}${l.label ? `<small>${esc(l.label)}</small>` : ""}</dt><dd>${esc(cap(l.text))}</dd>`).join("")}</dl>
+  ${m.guidance ? `<p class="guide">${esc(m.guidance)}</p>` : ""}</div>`; }).join("");
 refreshSubmit(); drawLegend(); drawSpider(null); draw();
 </script>
 </body>

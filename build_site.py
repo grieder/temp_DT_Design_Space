@@ -13,11 +13,12 @@ new axis cannot be published until every listed system has been scored.
 import argparse
 import html
 import json
+import re
 import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-REQUIRED_AXIS_KEYS = {"name", "short", "label", "min", "max", "scale", "cbar"}
+REQUIRED_AXIS_KEYS = {"name", "short", "label", "min", "max", "scale", "cbar", "description", "levels"}
 SCALES = {"linear", "diverging", "log10", "ladder"}
 D3_CDN = '<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>'
 
@@ -36,6 +37,12 @@ def validate(data):
             errors.append(f"axis {a} is missing {sorted(missing)}")
         if axes[a].get("scale") not in SCALES:
             errors.append(f"axis {a} scale must be one of {sorted(SCALES)}")
+        lv = axes[a].get("levels")
+        if not str(axes[a].get("description", "")).strip():
+            errors.append(f"axis {a} needs a non-empty description")
+        if not isinstance(lv, list) or not lv or not all(
+                isinstance(x, dict) and str(x.get("value", "")).strip() and str(x.get("text", "")).strip() for x in lv):
+            errors.append(f"axis {a} needs levels, each with a value and a text")
         if axes[a].get("min", 0) >= axes[a].get("max", 0):
             errors.append(f"axis {a} needs min < max")
     names = set()
@@ -74,7 +81,9 @@ if errs:
 page = (HERE / "template.html").read_text()
 page = page.replace("/*DATA*/null", json.dumps(data, ensure_ascii=False))
 page = page.replace('/*REPO_URL*/""', json.dumps(args.repo_url.rstrip("/")))
-page = page.replace('/*SKILL_URL*/""', json.dumps(args.skill_url))
+# A GitHub "blob" page only displays the file; "raw" downloads it directly.
+skill_url = re.sub(r"^(https://github\.com/[^/]+/[^/]+)/blob/", r"\1/raw/", args.skill_url)
+page = page.replace('/*SKILL_URL*/""', json.dumps(skill_url))
 if args.offline:
     d3 = (HERE / "vendor" / "d3.min.js").read_text()
     page = page.replace("<!--D3-->", f"<script>/* d3 v7.9.0, ISC license (vendor/d3.LICENSE) */\n{d3}\n</script>")

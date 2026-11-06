@@ -52,6 +52,7 @@ N is the number of model parameters fitted or fine-tuned to data from the system
 Count parameters from the architecture when the paper or its code gives one, and show the arithmetic in the rationale.
 
 ### 5. VVUQ maturity, 0 to 4 (ladder)
+How strong is the evidence that the model's predictions can be trusted? Levels climb from no comparison with data to a documented credibility assessment.
 - **0, None:** no comparison with independent data; no uncertainty quantified.
 - **1, Point agreement:** outputs compared with data (overlays, parity, success rates, benchmark values), with no held-out split and no UQ.
 - **2, Validation or UQ:** either validation against data not used to build or fit the model, or quantified predictive uncertainty (GP posterior, ensemble variance, functional bracketing).
@@ -59,6 +60,7 @@ Count parameters from the architecture when the paper or its code gives one, and
 - **4, Credibility:** a structured credibility assessment for a stated context of use (e.g. ASME V&V 40), or an error budget covering measurement, data, modeling, and interpretation errors.
 
 ### 6. Autonomy, 0 to 2
+How much of the decide–act–update cycle runs without a person? This is scored separately from automation of data flow (Axis 1).
 - **0, Human-in-loop:** a human picks the next step and interprets results.
 - **1, Semi-autonomous:** the system decides some steps (e.g. acquisition picks the next sample) with human oversight.
 - **2, Autonomous or agentic:** runs the decide–act–update cycle over many iterations with essentially no human intervention.

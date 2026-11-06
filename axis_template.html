@@ -48,6 +48,8 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font
 .choice { display: flex; gap: 18px; flex-wrap: wrap; font-weight: 600; }
 .choice label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
 .choice input { width: auto; accent-color: var(--accent); }
+.levelrow { display: grid; grid-template-columns: 80px 140px 1fr auto; gap: 8px; margin-bottom: 6px; }
+@media (max-width: 640px) { .levelrow { grid-template-columns: 1fr 1fr; } .levelrow input:nth-child(3) { grid-column: 1 / -1; } }
 .tickrow { display: grid; grid-template-columns: 90px 1fr auto; gap: 8px; margin-bottom: 6px; }
 table { border-collapse: collapse; width: 100%; font-size: 14px; }
 th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--rule); vertical-align: top; }
@@ -104,6 +106,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
     <label class="f">Short name (required) <span class="opt">spider-plot spoke</span><input type="text" id="fShort" autocomplete="off"></label>
   </div>
   <label class="f">Full label (required) <span class="opt">axis title on plots</span><input type="text" id="fLabel" autocomplete="off" placeholder="e.g. Bidirectional Coupling (Loop Closure)"></label>
+  <label class="f">Description (required) <span class="opt">the question this axis answers, e.g. "What is the forward map made of?"</span><textarea id="fDesc" style="min-height:60px"></textarea></label>
   <div class="cols">
     <label class="f">Minimum (required) <input type="number" step="any" id="fMin"></label>
     <label class="f">Maximum (required) <input type="number" step="any" id="fMax"></label>
@@ -117,11 +120,17 @@ button:disabled { opacity: .45; cursor: not-allowed; }
     <div id="ticks"></div>
     <button type="button" class="secondary small" id="addTick">Add tick</button>
   </div>
+  <div style="margin-bottom:12px">
+    <div style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:4px">Level descriptions (required, at least two) <span class="opt">what each score level, or score range, means</span></div>
+    <div id="levels"></div>
+    <button type="button" class="secondary small" id="addLevel">Add level</button>
+  </div>
   <div class="cols">
     <label class="f">Color-bar low end (required) <input type="text" id="fCbLo" autocomplete="off" placeholder="e.g. Surrogate"></label>
     <label class="f">Color-bar high end (required) <input type="text" id="fCbHi" autocomplete="off" placeholder="e.g. Faithful Mirror"></label>
   </div>
-  <label class="f">Note <span class="opt">(optional) what the score measures</span><textarea id="fNote" style="min-height:60px"></textarea></label>
+  <label class="f">Scoring guidance <span class="opt">(optional) e.g. what is and is not counted</span><textarea id="fGuide" style="min-height:60px"></textarea></label>
+  <label class="f">Note <span class="opt">(optional) short definition shown with the axis</span><textarea id="fNote" style="min-height:60px"></textarea></label>
   <div class="row" style="margin-bottom:8px"><label class="row" style="gap:6px;font-size:14px"><input type="checkbox" id="fHl" style="width:auto"> Highlight a band on the spider plot (optional)</label></div>
   <div class="cols" id="hlBox" hidden>
     <label class="f">Band from <input type="number" step="any" id="fHlLo"></label>
@@ -202,11 +211,21 @@ function tickRow(v = "", l = "") {
   d.querySelectorAll("input").forEach(e => e.addEventListener("input", update));
   $("ticks").append(d);
 }
+function levelRow(v = "", l = "", t = "") {
+  const d = document.createElement("div"); d.className = "levelrow";
+  d.innerHTML = `<input type="text" aria-label="Level value" placeholder="value, e.g. 1 or 0-1"><input type="text" aria-label="Level name" placeholder="name (optional)"><input type="text" aria-label="Level description" placeholder="what this level means"><button type="button" class="secondary small" aria-label="Remove level">Remove</button>`;
+  d.children[0].value = v; d.children[1].value = l; d.children[2].value = t;
+  d.children[3].onclick = () => { d.remove(); update(); };
+  d.querySelectorAll("input").forEach(e => e.addEventListener("input", update));
+  $("levels").append(d);
+}
 function fill(ax) {
   ax = ax || {};
   $("fName").value = ax.name || ""; $("fShort").value = ax.short || ""; $("fLabel").value = ax.label || "";
   $("fMin").value = ax.min ?? ""; $("fMax").value = ax.max ?? ""; $("fScale").value = ax.scale || "";
   $("ticks").innerHTML = ""; (ax.ticks || []).forEach(([v, l]) => tickRow(v, l)); if (!ax.ticks) { tickRow(); tickRow(); }
+  $("fDesc").value = ax.description || ""; $("fGuide").value = ax.guidance || "";
+  $("levels").innerHTML = ""; (ax.levels || []).forEach(l => levelRow(l.value, l.label, l.text)); if (!ax.levels) { levelRow(); levelRow(); }
   $("fCbLo").value = ax.cbar?.[0] || ""; $("fCbHi").value = ax.cbar?.[1] || "";
   $("fNote").value = ax.note || "";
   $("fHl").checked = !!ax.highlight_band;
@@ -217,8 +236,11 @@ const num = id => { const v = val(id); return v === "" ? null : Number(v); };
 function collect() {
   const ticks = [...$("ticks").children].map(r => [r.children[0].value.trim() === "" ? null : Number(r.children[0].value), r.children[1].value.trim()])
     .filter(([v, l]) => v !== null || l);
-  const ax = {name: val("fName"), short: val("fShort"), label: val("fLabel"), min: num("fMin"), max: num("fMax"),
+  const levels = [...$("levels").children].map(r => ({value: r.children[0].value.trim(), label: r.children[1].value.trim(), text: r.children[2].value.trim()}))
+    .filter(l => l.value || l.label || l.text);
+  const ax = {name: val("fName"), short: val("fShort"), label: val("fLabel"), description: val("fDesc"), levels, min: num("fMin"), max: num("fMax"),
     scale: val("fScale"), ticks: ticks.length ? ticks : null, cbar: [val("fCbLo"), val("fCbHi")]};
+  if (val("fGuide")) ax.guidance = val("fGuide");
   if (val("fNote")) ax.note = val("fNote");
   if ($("fHl").checked) { ax.highlight_band = [num("fHlLo"), num("fHlHi")]; if (val("fHlNote")) ax.highlight_note = val("fHlNote"); }
   return ax;
@@ -230,6 +252,9 @@ const current = () => meta[$("pick").value];
 const fmtTicks = t => t ? t.map(([v, l]) => `${v} = ${l}`).join("; ") : "none";
 const FIELDS = [
   ["Name", a => a.name], ["Short name", a => a.short], ["Full label", a => a.label],
+  ["Description", a => a.description],
+  ["Levels", a => (a.levels || []).map(l => `${l.value}${l.label ? " (" + l.label + ")" : ""}: ${l.text}`).join("; ")],
+  ["Scoring guidance", a => a.guidance || "none"],
   ["Minimum", a => a.min], ["Maximum", a => a.max], ["Scale", a => a.scale],
   ["Ticks", a => fmtTicks(a.ticks)], ["Color-bar low end", a => a.cbar?.[0]], ["Color-bar high end", a => a.cbar?.[1]],
   ["Note", a => a.note || "none"],
@@ -257,6 +282,9 @@ function check(ax) {
     else if (range && (v < ax.min || v > ax.max)) errs.push(`Tick ${i + 1} (${v}) is outside ${ax.min} to ${ax.max}`);
   });
   if (new Set((ax.ticks || []).map(t => t[0])).size < (ax.ticks || []).length) errs.push("Two ticks share the same value");
+  need(ax.description, "Description is required");
+  if (ax.levels.length < 2) errs.push("At least two level descriptions are required");
+  ax.levels.forEach((l, i) => { if (!l.value || !l.text) errs.push(`Level ${i + 1} needs a value and a description`); });
   need(ax.cbar[0] && ax.cbar[1], "Both color-bar end labels are required");
   if (ax.highlight_band) {
     const [lo, hi] = ax.highlight_band;
@@ -335,6 +363,7 @@ function setKind() {
 }
 document.querySelectorAll('input[name="kind"]').forEach(r => r.onchange = setKind);
 $("pick").onchange = setKind;
+$("addLevel").onclick = () => { levelRow(); update(); };
 $("addTick").onclick = () => { tickRow(); update(); };
 $("fHl").onchange = () => { $("hlBox").hidden = !$("fHl").checked; update(); };
 document.querySelectorAll("input,select,textarea").forEach(e => { e.addEventListener("input", update); e.addEventListener("change", update); });
