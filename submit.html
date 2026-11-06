@@ -86,13 +86,16 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 <h2>1. Summary</h2>
 <div class="card">
   <label class="f">System name <input type="text" id="fName" autocomplete="off"></label>
-  <label class="f">Source reference or DOI <span class="opt">(citation, DOI, or arXiv link)</span>
-    <input type="text" id="fRef" autocomplete="off" placeholder="e.g. Author et al., Journal 2025, https://doi.org/10.xxxx/xxxxx"></label>
+  <label class="f">Source reference <span class="opt">(first author et al., journal, year)</span>
+    <input type="text" id="fRef" autocomplete="off" placeholder="e.g. Doe et al., Nature 2025"></label>
+  <label class="f">DOI of the source article <span class="opt">(for an arXiv preprint use 10.48550/arXiv.&lt;id&gt;)</span>
+    <input type="text" id="fDoi" autocomplete="off" placeholder="10.1038/s41586-023-06734-w"></label>
+  <div class="hint" id="doiStatus" role="status" style="margin:-6px 0 12px"></div>
   <label class="f" style="margin-bottom:0"><span>Rubric version</span><input type="text" id="fVer" readonly></label>
 </div>
 
-<h2>2. Scores and evidence</h2>
-<p class="sub">Every axis needs a score within range, a basis (E = explicit in the paper, I = inferred, T = from a stated cost comparison, Axis 3 only, U = unknown), and a short rationale. Basis E also needs the location in the paper.</p>
+<h2>2. Scores</h2>
+<p class="sub">Every axis needs a score within its range. These are the scores from the scoring skill; maintainers re-run the skill on the paper to confirm they were not changed. See the <a id="rubricLink" href="#" target="_blank" rel="noopener">current rubric and rules</a>.</p>
 <div class="card"><div class="tablewrap"><table id="axTbl"></table></div>
   <label class="f" style="margin:14px 0 0"><span class="row" style="gap:6px"><input type="checkbox" id="fNoVM" style="width:auto"> This system has no virtual model (Axes 1, 2 and 4 must then be 0)</span></label>
 </div>
@@ -145,25 +148,19 @@ function init() {
   sys.scores = sys.scores || {}; sys.evidence = sys.evidence || {};
   if (sys.ref === "Added system") sys.ref = "";
   $("fName").value = sys.name; $("fRef").value = sys.ref || "";
+  $("fDoi").value = cleanDoi(sys.doi || "");
   $("fVer").value = sys.rubric_version || DATA.version;
   $("fNoVM").checked = !!sys.no_virtual_model;
 
   const t = $("axTbl");
-  t.innerHTML = `<thead><tr><th>Axis</th><th>Score</th><th>Basis</th><th>Rationale</th><th>Location in paper</th></tr></thead>`;
+  t.innerHTML = `<thead><tr><th>Axis</th><th>Score</th></tr></thead>`;
   const tb = document.createElement("tbody");
   AX.forEach(a => {
-    const ev = sys.evidence[a] || {};
     const tr = document.createElement("tr");
     tr.innerHTML = `<td><b>${a}. ${esc(meta[a].short)}</b><div class="hint">${meta[a].min} to ${meta[a].max}</div></td>
-      <td><input type="number" step="0.1" min="${meta[a].min}" max="${meta[a].max}" id="s${a}" style="width:5.5em" aria-label="Axis ${a} score"></td>
-      <td><select id="b${a}" aria-label="Axis ${a} basis"><option value="">Select</option>${BASIS.map(b => `<option>${b}</option>`).join("")}</select></td>
-      <td><textarea id="r${a}" aria-label="Axis ${a} rationale"></textarea></td>
-      <td><input type="text" id="l${a}" aria-label="Axis ${a} location in paper"></td>`;
+      <td><input type="number" step="0.1" min="${meta[a].min}" max="${meta[a].max}" id="s${a}" style="width:5.5em" aria-label="Axis ${a} score"></td>`;
     tb.append(tr);
     tr.querySelector("#s" + a).value = sys.scores[a] ?? "";
-    tr.querySelector("#b" + a).value = ev.basis || "";
-    tr.querySelector("#r" + a).value = ev.rationale || "";
-    tr.querySelector("#l" + a).value = ev.location || "";
   });
   t.append(tb);
   document.querySelectorAll("input,select,textarea").forEach(e => { e.addEventListener("input", update); e.addEventListener("change", update); });
@@ -175,17 +172,43 @@ function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": 
 
 // ---------- read the form into a submission object
 function collect() {
-  const out = {name: $("fName").value.trim(), ref: $("fRef").value.trim(), scores: {}, evidence: {},
+  const out = {name: $("fName").value.trim(), ref: $("fRef").value.trim(), doi: cleanDoi($("fDoi").value), scores: {}, evidence: {},
     status: "community-pending", rubric_version: $("fVer").value};
   if ($("fNoVM").checked) out.no_virtual_model = true;
   AX.forEach(a => {
     const raw = $("s" + a).value.trim();
     out.scores[a] = raw === "" ? null : Number(raw);
-    const e = {basis: $("b" + a).value, rationale: $("r" + a).value.trim()};
-    const loc = $("l" + a).value.trim(); if (loc) e.location = loc;
-    out.evidence[a] = e;
+    if (sys.evidence[a]) out.evidence[a] = sys.evidence[a];  // pass through what the skill wrote
   });
   return out;
+}
+// Accept a pasted https://doi.org/... link or "doi:" prefix, keep the bare DOI.
+const cleanDoi = v => v.trim().replace(/^(https?:\/\/(dx\.)?doi\.org\/|doi:\s*)/i, "").trim();
+const DOI_RE = /^10\.\d{4,9}\/\S+$/;
+// DOI verification: doi.org says whether it is registered; Crossref or DataCite supply the title.
+// doiState: {doi, state: "checking" | "ok" | "missing" | "offline", title}
+let doiState = {doi: "", state: ""}, doiTimer = null;
+async function getJson(url) { const r = await fetch(url); if (!r.ok) { const e = new Error(r.status); e.status = r.status; throw e; } return r.json(); }
+async function verifyDoi(doi) {
+  const q = encodeURI(doi);
+  try {
+    const h = await getJson(`https://doi.org/api/handles/${q}`);
+    if (h.responseCode !== 1) return {doi, state: "missing"};
+  } catch (e) { return {doi, state: e.status === 404 ? "missing" : "offline"}; }
+  let title = "";
+  try { title = (await getJson(`https://api.crossref.org/works/${q}`)).message.title[0]; }
+  catch (e) { try { title = (await getJson(`https://api.datacite.org/dois/${q}`)).data.attributes.titles[0].title; } catch (e2) {} }
+  return {doi, state: "ok", title};
+}
+function scheduleDoiCheck(doi) {
+  if (doiState.doi === doi) return;
+  clearTimeout(doiTimer);
+  if (!DOI_RE.test(doi)) { doiState = {doi, state: ""}; return; }
+  doiState = {doi, state: "checking"};
+  doiTimer = setTimeout(async () => {
+    const r = await verifyDoi(doi);
+    if ($("fDoi") && cleanDoi($("fDoi").value) === doi) { doiState = r; update(); }
+  }, 500);
 }
 const words = s => (s.trim().match(/\S+/g) || []).length;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -194,16 +217,18 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function check(s) {
   const errs = [], warns = [], oks = [];
   (s.name ? oks : errs).push(s.name ? "System name" : "System name is missing");
-  (s.ref ? oks : errs).push(s.ref ? "Source reference or DOI" : "Source reference or DOI is missing");
+  (s.ref ? oks : errs).push(s.ref ? "Source reference" : "Source reference is missing");
+  if (!s.doi) errs.push("DOI is missing");
+  else if (!DOI_RE.test(s.doi)) errs.push("DOI must look like 10.1038/s41586-023-06734-w");
+  else if (doiState.state === "missing") errs.push("DOI is not registered at doi.org; check for typos");
+  else if (doiState.state === "checking") errs.push("Checking the DOI at doi.org...");
+  else if (doiState.state === "offline") { warns.push("Could not reach doi.org, so the DOI was not verified"); oks.push("DOI (format only)"); }
+  else oks.push("DOI");
   AX.forEach(a => {
-    const v = s.scores[a], ev = s.evidence[a], lbl = `Axis ${a} (${meta[a].short})`, bad = [];
+    const v = s.scores[a], lbl = `Axis ${a} (${meta[a].short})`, bad = [];
     if (v === null || !Number.isFinite(v)) bad.push("score is missing");
     else if (v < meta[a].min || v > meta[a].max) bad.push(`score ${v} is outside ${meta[a].min} to ${meta[a].max}`);
     else if (Math.round(v * 10) / 10 !== v) warns.push(`${lbl}: score has more than one decimal place`);
-    if (!ev.basis) bad.push("basis is not selected");
-    if (!ev.rationale) bad.push("rationale is empty");
-    if (ev.basis === "T" && a !== "3") bad.push("basis T is only allowed on Axis 3");
-    if (ev.basis === "E" && !ev.location) bad.push("basis E needs a location in the paper");
     if (s.no_virtual_model && ["1", "2", "4"].includes(a) && v !== 0) bad.push("must be 0 when there is no virtual model");
     bad.length ? errs.push(`${lbl}: ${bad.join("; ")}`) : oks.push(lbl);
   });
@@ -214,6 +239,12 @@ function update() {
   const n = words($("fComments").value), email = $("fEmail").value.trim();
   if (n > MAX_WORDS) errs.push(`Comments are ${n} words; the limit is ${MAX_WORDS}`);
   if (email && !EMAIL_RE.test(email)) errs.push("The email address does not look valid");
+  scheduleDoiCheck(s.doi);
+  const ds = $("doiStatus"), dsx = doiState.doi === s.doi ? doiState.state : "";
+  ds.style.color = dsx === "missing" ? "var(--bad)" : dsx === "ok" ? "var(--good)" : "";
+  ds.innerHTML = dsx === "ok" ? `Resolves at <a href="https://doi.org/${encodeURI(s.doi)}" target="_blank" rel="noopener">doi.org</a>${doiState.title ? ": " + esc(doiState.title) + ". Confirm this is the article you scored." : "."}`
+    : dsx === "missing" ? "This DOI is not registered at doi.org."
+    : dsx === "checking" ? "Checking at doi.org..." : "";
   $("wc").textContent = `${n} / ${MAX_WORDS} words`; $("wc").classList.toggle("over", n > MAX_WORDS);
   $("checks").innerHTML = errs.map(e => `<li class="err">${esc(e)}</li>`).join("") +
     warns.map(e => `<li class="warn">${esc(e)}</li>`).join("") +
@@ -227,17 +258,20 @@ function update() {
 // ---------- build the issue
 function issueBody(s) {
   const email = $("fEmail").value.trim(), comments = $("fComments").value.trim();
-  const rows = AX.map(a => `| ${a}. ${meta[a].short} | ${s.scores[a]} | ${s.evidence[a].basis} | ${s.evidence[a].rationale.replace(/\|/g, "\\|").replace(/\n+/g, " ")} | ${(s.evidence[a].location || "").replace(/\|/g, "\\|")} |`);
+  const rows = AX.map(a => `| ${a}. ${meta[a].short} | ${s.scores[a]} |`);
   return [
     `### System\n${s.name}`,
     `### Source\n${s.ref}`,
+    `### DOI\n[${s.doi}](https://doi.org/${encodeURI(s.doi)})`,
     `### Rubric version\n${s.rubric_version}`,
-    `### Scores\n| Axis | Score | Basis | Rationale | Location |\n|---|---|---|---|---|\n${rows.join("\n")}`,
+    `### Scores\n| Axis | Score |\n|---|---|\n${rows.join("\n")}`,
     `### Score file\n\`\`\`json\n${JSON.stringify(s, null, 1)}\n\`\`\``,
     `### Contact email\n${email || "_No response_"}`,
     `### Comments\n${comments || "_No response_"}`
   ].join("\n\n");
 }
+const RUBRIC_URL = REPO_URL ? REPO_URL + "/blob/main/digital-twin-scorer/references/rubric.md" : "";
+if (RUBRIC_URL) $("rubricLink").href = RUBRIC_URL; else $("rubricLink").replaceWith("current rubric and rules");
 const MAX_URL = 7500;  // GitHub rejects very long prefilled URLs
 function submit() {
   const {s, errs} = update(); if (errs.length) return;

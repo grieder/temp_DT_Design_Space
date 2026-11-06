@@ -8,7 +8,7 @@ description: Scores a research paper on the six-axis digital twin design rubric 
 Score one paper on the six rubric axes, with evidence for every score, and produce a score file that can be plotted and submitted to the community landscape.
 
 ## What to read
-- `references/rubric.md`: the axes, anchor levels, basis codes, and decision rules R1–R9. **Always read it in full before scoring.**
+- `references/rubric.md` (current version online: https://github.com/grieder/temp_DT_Design_Space/blob/main/digital-twin-scorer/references/rubric.md): the axes, anchor levels, basis codes, and decision rules R1–R9. **Always read it in full before scoring.**
 - `references/anchors_rationales.md`: 17 human-reviewed anchor systems, each with six scores and rationales. Use it to calibrate: for every axis, find the anchors closest to the paper and score relative to them.
 - `assets/anchors.json`: the same scores in machine-readable form (used by the scripts).
 
@@ -50,7 +50,7 @@ Give the user, in this order:
 1. A short table: axis, score, basis, one-sentence reason, nearest anchors.
 2. Any judgment calls a reviewer might dispute, and which rule decided them.
 3. If R4 applies, state that the system is an autonomous laboratory rather than a digital twin.
-4. The score file (below), saved as `<short-name>_scores.json`. Run `python scripts/validate_score.py <file>` on it and fix any errors before sharing.
+4. The score file (below), saved as `<short-name>_scores.json`. Run `python scripts/validate_score.py <file> --check-doi` on it (the flag confirms at doi.org that the DOI is registered; offline, it only warns) and fix any errors before sharing.
 5. Optionally, a map placing the system among the anchors:
    `python scripts/plot_landscape.py --include-reference --new <file> --out <short-name>_map`
 
@@ -74,6 +74,7 @@ Then tell the user how to share it: load the score file on the landscape website
   "questions": []
 }
 ```
+- `doi` is required. Take it from the paper's first page or reference line and write it bare (`10.1038/s41586-023-06734-w`, not a URL). For an arXiv preprint use `10.48550/arXiv.<id>`. If the paper shows no DOI, ask the user for it in step 5; never guess or invent one.
 - Every axis needs an `evidence` entry with the same fields.
 - Set `rubric_version` from `assets/anchors.json`.
 - `questions` lists anything left unanswered.

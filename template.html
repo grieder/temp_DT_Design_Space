@@ -206,7 +206,7 @@ footer { color: var(--muted); font-size: 13px; padding: 48px 0 40px; border-top:
 </div>
 
 <footer>
-  Scores follow rubric v<span id="ver"></span> (Appendix A of Grieder and Qian, “What Makes a Digital Twin?”). Rationales, source evidence, and contribution guidelines are in the open rubric repository.
+  Scores follow rubric v<span id="ver"></span> (Appendix A of Grieder and Qian, “What Makes a Digital Twin?”). Rationales, source evidence, and contribution guidelines are in the open rubric repository. <a href="#" id="rubricLink">Read the current rubric and decision rules</a>.
 </footer>
 </div>
 
@@ -523,6 +523,8 @@ $("submitBtn").onclick = () => {
 };
 if (SKILL_URL) $("skillLink").href = SKILL_URL;
 else $("skillLink").replaceWith(document.createTextNode("scoring skill (digital-twin-scorer.skill, shared with this page)"));
+if (REPO_URL) $("rubricLink").href = `${REPO_URL}/blob/main/digital-twin-scorer/references/rubric.md`;
+else $("rubricLink").replaceWith(document.createTextNode("current rubric and decision rules (digital-twin-scorer/references/rubric.md)"));
 if (REPO_URL) $("axisLink").href = `${REPO_URL}/issues/new?template=propose-axis.yml`;
 $("clearNew").onclick = () => { added = []; refreshSubmit(); if (selected && selected.status === "new") selected = null; drawSpider(selected); draw(); $("mMsg").textContent = "Removed added systems."; $("mMsg").className = "msg"; };
 
