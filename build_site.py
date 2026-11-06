@@ -2,7 +2,7 @@
 """Validate anchors.json and build index.html from template.html.
 
 Usage:
-    python build_site.py                                   # public build: d3 from CDN
+    python build_site.py --repo-url https://github.com/ORG/REPO --skill-url URL   # public build: d3 from CDN
     python build_site.py --offline --draft "Team preview"  # single file that works offline
     python build_site.py --repo-url https://github.com/ORG/REPO   # enable Submit for review
 
@@ -57,7 +57,7 @@ def validate(data):
 
 
 ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-ap.add_argument("--anchors", default=str(HERE.parent / "dt_rubric_scripts" / "anchors.json"))
+ap.add_argument("--anchors", default=str(HERE / "digital-twin-scorer" / "assets" / "anchors.json"))
 ap.add_argument("--out", default=str(HERE / "index.html"))
 ap.add_argument("--offline", action="store_true",
                 help="inline d3 (vendor/d3.min.js) so the file works without internet")

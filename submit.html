@@ -120,7 +120,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
     <button class="secondary" id="copyBtn">Copy issue text</button>
   </div>
   <div class="msg" id="msg" role="status"></div>
-  <p class="hint">Submitting opens a new GitHub issue in a new tab with the title, scores and your comments filled in. GitHub requires you to be signed in, and you finish by pressing "Submit new issue" there.</p>
+  <p class="hint">Submitting takes you to a new GitHub issue with the title, scores and your comments filled in. GitHub requires you to be signed in, and you finish by pressing "Submit new issue" there.</p>
 </div>
 </main>
 </div>
@@ -280,12 +280,14 @@ function submit() {
   let url = `${REPO_URL}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&labels=${encodeURIComponent("submission")}`;
   if (url.length > MAX_URL) {
     // Too long for a link: copy the full text and open an issue that asks for it to be pasted.
-    navigator.clipboard?.writeText(body).catch(() => {});
     const stub = "The full submission was copied to your clipboard. Delete this line and paste it here.";
     url = `${REPO_URL}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(stub)}&labels=${encodeURIComponent("submission")}`;
-    ok("The submission is too long for a link, so it was copied to your clipboard. Paste it into the issue that opened, then press Submit new issue.");
-  } else ok("Opened a GitHub issue in a new tab. Press \"Submit new issue\" there to finish.");
-  window.open(url, "_blank", "noopener");
+    ok("The submission is long, so it was copied to your clipboard. Paste it into the issue that opens next.");
+    const go = () => { location.href = url; };
+    (navigator.clipboard ? navigator.clipboard.writeText(body) : Promise.reject()).then(go, go);
+    return;
+  }
+  location.href = url;  // continue in this tab; Back returns to this page with your entries
 }
 function copyText() {
   const {s, errs} = update(); if (errs.length) return;

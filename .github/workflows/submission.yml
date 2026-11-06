@@ -1,0 +1,81 @@
+# When someone opens a "Submission: ..." issue (made by the website's submit page),
+# validate the score file, list it as "community-pending", rebuild the site and redeploy.
+name: Add community submission
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write   # commit the updated anchors.json and rebuilt pages
+  issues: write     # comment on and label the issue
+  actions: write    # start the Pages deploy (pushes by GITHUB_TOKEN do not trigger it)
+
+# One submission at a time so concurrent pushes cannot clash.
+concurrency:
+  group: submissions
+  cancel-in-progress: false
+
+env:
+  REPO_URL: https://github.com/grieder/temp_DT_Design_Space
+  SKILL_URL: https://github.com/grieder/temp_DT_Design_Space/blob/main/digital-twin-scorer.skill
+
+jobs:
+  add:
+    if: startsWith(github.event.issue.title, 'Submission:') && contains(github.event.issue.body, '### Score file')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The issue text is untrusted: it is passed through an environment variable
+      # and a file, never interpolated into a shell command.
+      - name: Validate and add the submission
+        id: add
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          printf '%s' "$ISSUE_BODY" > "$RUNNER_TEMP/issue.md"
+          set +e
+          python digital-twin-scorer/scripts/add_submission.py \
+            --body-file "$RUNNER_TEMP/issue.md" --issue "$ISSUE_NUMBER" --check-doi > "$RUNNER_TEMP/result.txt"
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+          cat "$RUNNER_TEMP/result.txt"
+
+      - name: Rebuild the site
+        if: steps.add.outputs.status == '0'
+        run: |
+          python build_site.py --anchors digital-twin-scorer/assets/anchors.json \
+            --repo-url "$REPO_URL" --skill-url "$SKILL_URL"
+
+      - name: Commit and redeploy
+        if: steps.add.outputs.status == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add digital-twin-scorer/assets/anchors.json index.html submit.html
+          git commit -m "Add community submission from issue #${ISSUE_NUMBER} (pending review)"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          gh workflow run static.yml --ref "${GITHUB_REF_NAME}"
+          gh label create community-pending --color FBCA04 --description "Awaiting maintainer review" 2>/dev/null || true
+          gh issue edit "$ISSUE_NUMBER" --add-label community-pending
+          gh issue comment "$ISSUE_NUMBER" --body "Thanks. Your system is now listed on the landscape as **community submission, awaiting review**. A maintainer will re-run the scoring skill on the paper to confirm the scores, then mark it verified."
+
+      - name: Report problems
+        if: steps.add.outputs.status != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh label create needs-fix --color D93F0B --description "Submission failed validation" 2>/dev/null || true
+          gh issue edit "$ISSUE_NUMBER" --add-label needs-fix
+          { echo "The submission could not be added automatically:"; echo; cat "$RUNNER_TEMP/result.txt"; echo
+            echo "Please fix these on the submit page and open a new issue, or reply here if you need help."; } > "$RUNNER_TEMP/comment.md"
+          gh issue comment "$ISSUE_NUMBER" --body-file "$RUNNER_TEMP/comment.md"

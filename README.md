@@ -8,7 +8,7 @@ A single static page (`index.html`) with:
 
 ## Build
 ```bash
-python build_site.py --anchors ../dt_rubric_scripts/anchors.json   # writes index.html
+python build_site.py --repo-url https://github.com/grieder/temp_DT_Design_Space --skill-url https://github.com/grieder/temp_DT_Design_Space/blob/main/digital-twin-scorer.skill   # writes index.html and submit.html
 ```
 `anchors.json` is the single source of truth, shared with `plot_landscape.py`. Rebuild after every rubric or score change.
 
@@ -23,7 +23,11 @@ python build_site.py --anchors ../dt_rubric_scripts/anchors.json   # writes inde
 A list of such objects is also accepted. Each score is checked against the axis ranges in `anchors.json`.
 
 ## Community submissions
-Visitors add a system locally, then use **Submit for review**. That opens a GitHub issue (form `submit-system.yml`) with the score file filled in. Maintainers run `add_submission.py` to list it as pending (hollow triangle), then `add_submission.py --verify` after checking the scores (filled diamond). Rebuild after each change.
+Visitors add a system locally, then use **Review and submit**. That opens `submit.html` in a new tab, which checks the fields (including that the DOI resolves at doi.org), then sends the visitor to a prefilled GitHub issue titled "Submission: ...".
+
+The workflow `.github/workflows/submission.yml` runs when such an issue is opened. It validates the score file with `digital-twin-scorer/scripts/add_submission.py`, adds the system to `anchors.json` as `community-pending` (hollow triangle), rebuilds the pages, redeploys, and comments on the issue. Invalid submissions get a comment listing the problems and a `needs-fix` label. The contact email and comments stay in the issue and are never copied into `anchors.json`.
+
+To verify a system after re-running the skill on its paper: `python digital-twin-scorer/scripts/add_submission.py --verify "System name"`, then rebuild (filled diamond).
 
 ## Axes are data
 Axis order, names, ranges, tick labels, color-bar ends, and highlight bands all come from `anchors.json`. Adding an accepted axis is a data change; `build_site.py` refuses to build until every system has a score for every axis. The axis proposal process is in `CONTRIBUTING.md`.
