@@ -157,6 +157,7 @@ footer { color: var(--muted); font-size: 13px; padding: 48px 0 40px; border-top:
     <p class="ref" id="fpRef">Select a system to see its six-axis profile.</p>
     <div id="spider"></div>
     <p class="hint" id="bandHint"></p>
+    <button class="secondary" id="axisBtn" style="margin-top:12px;width:100%">Suggest new/modify axis</button>
   </aside>
 </div>
 
@@ -202,7 +203,7 @@ footer { color: var(--muted); font-size: 13px; padding: 48px 0 40px; border-top:
     <button class="secondary" id="downloadBtn">Download score file</button>
   </div>
   <div class="msg" id="sMsg"></div>
-  <p style="margin-top:12px" id="subInfo">"Review and submit" opens a page that summarizes your system, checks that every field is complete, and prepares a GitHub issue. Include the DOI and the evidence and basis (E/I/T) for each score that the skill returns. To propose a new axis instead, use the <a href="#" id="axisLink">axis proposal form</a>.</p>
+  <p style="margin-top:12px" id="subInfo">"Review and submit" opens a page that summarizes your system, checks that every field is complete, and prepares a GitHub issue. Include the DOI and the evidence and basis (E/I/T) for each score that the skill returns. To propose a new axis or a change to an existing one, use "Suggest new/modify axis" beside the fingerprint.</p>
 </div>
 
 <footer>
@@ -216,6 +217,7 @@ const DATA = /*DATA*/null;
 // Repository that receives community submissions (GitHub issue forms).
 const REPO_URL = /*REPO_URL*/"";   // empty: submissions not open yet
 const SUBMIT_PAGE = /*SUBMIT_PAGE*/"submit.html";  // review-and-submit page, opened in a new tab
+const AXIS_PAGE = /*AXIS_PAGE*/"axis.html";  // axis proposal page, opened in a new tab
 const SKILL_URL =/*SKILL_URL*/"";  // empty: skill shared as a file alongside the page
 
 // Everything about the axes comes from anchors.json, so a new axis needs only
@@ -318,10 +320,9 @@ function draw() {
   const pts = svg.append("g").selectAll("path").data(data).join("path")
     .attr("transform", d => `translate(${x(d.scores[xa])},${y(d.scores[ya])})`)
     .attr("d", d => d3.symbol(symbol(d), Math.PI * size(d) ** 2 * (d.status === "new" ? 1.6 : 1))())
-    .attr("fill", d => d.status === "community-pending" ? "none" : col(d.scores[ca]))
-    .attr("stroke", d => d === selected ? ink : d.status === "community-pending" ? col(d.scores[ca]) : muted)
-    .attr("stroke-width", d => d === selected ? 2.5 : d.status === "community-pending" ? 2.5 : 0.7)
-    .attr("pointer-events", "all")      // hollow pending markers stay clickable
+    .attr("fill", d => col(d.scores[ca]))
+    .attr("stroke", d => d === selected ? ink : muted)
+    .attr("stroke-width", d => d === selected ? 2.5 : 0.7)
     .attr("tabindex", 0).attr("role", "button").attr("aria-label", d => d.name)
     .style("cursor", "pointer")
     .on("mouseenter focus", (ev, d) => showTip(ev, d))
@@ -525,7 +526,7 @@ if (SKILL_URL) $("skillLink").href = SKILL_URL;
 else $("skillLink").replaceWith(document.createTextNode("scoring skill (digital-twin-scorer.skill, shared with this page)"));
 if (REPO_URL) $("rubricLink").href = `${REPO_URL}/blob/main/digital-twin-scorer/references/rubric.md`;
 else $("rubricLink").replaceWith(document.createTextNode("current rubric and decision rules (digital-twin-scorer/references/rubric.md)"));
-if (REPO_URL) $("axisLink").href = `${REPO_URL}/issues/new?template=propose-axis.yml`;
+$("axisBtn").onclick = () => window.open(AXIS_PAGE, "_blank", "noopener");
 $("clearNew").onclick = () => { added = []; refreshSubmit(); if (selected && selected.status === "new") selected = null; drawSpider(selected); draw(); $("mMsg").textContent = "Removed added systems."; $("mMsg").className = "msg"; };
 
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { draw(); drawSpider(selected); });
@@ -533,8 +534,7 @@ function drawLegend() {
   const shown = ["anchor", "reference", "candidate", "community-verified", "community-pending", "new"];
   $("legend").innerHTML = shown.map(st => {
     const p = d3.symbol(SYMBOL[st], 70)();
-    const pend = st === "community-pending";
-    return `<span><svg width="16" height="16" viewBox="-8 -8 16 16" aria-hidden="true"><path d="${p}" fill="${pend ? "none" : "currentColor"}" stroke="currentColor" stroke-width="${pend ? 1.6 : 0}"/></svg>${esc(STATUS_TEXT[st])}</span>`;
+    return `<span><svg width="16" height="16" viewBox="-8 -8 16 16" aria-hidden="true"><path d="${p}" fill="currentColor"/></svg>${esc(STATUS_TEXT[st])}</span>`;
   }).join("");
   $("bandHint").textContent = BANDED.map(a => `The shaded band on the ${meta[a].short} spoke marks ${meta[a].highlight_note || "the highlighted range"} (${meta[a].highlight_band[0]} to ${meta[a].highlight_band[1]}).`).join(" ");
 }

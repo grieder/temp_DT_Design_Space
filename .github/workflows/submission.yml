@@ -59,7 +59,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add digital-twin-scorer/assets/anchors.json index.html submit.html
+          git add digital-twin-scorer/assets/anchors.json index.html submit.html axis.html
           git commit -m "Add community submission from issue #${ISSUE_NUMBER} (pending review)"
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"

@@ -25,9 +25,12 @@ A list of such objects is also accepted. Each score is checked against the axis 
 ## Community submissions
 Visitors add a system locally, then use **Review and submit**. That opens `submit.html` in a new tab, which checks the fields (including that the DOI resolves at doi.org), then sends the visitor to a prefilled GitHub issue titled "Submission: ...".
 
-The workflow `.github/workflows/submission.yml` runs when such an issue is opened. It validates the score file with `digital-twin-scorer/scripts/add_submission.py`, adds the system to `anchors.json` as `community-pending` (hollow triangle), rebuilds the pages, redeploys, and comments on the issue. Invalid submissions get a comment listing the problems and a `needs-fix` label. The contact email and comments stay in the issue and are never copied into `anchors.json`.
+The workflow `.github/workflows/submission.yml` runs when such an issue is opened. It validates the score file with `digital-twin-scorer/scripts/add_submission.py`, adds the system to `anchors.json` as `community-pending` (filled triangle), rebuilds the pages, redeploys, and comments on the issue. Invalid submissions get a comment listing the problems and a `needs-fix` label. The contact email and comments stay in the issue and are never copied into `anchors.json`.
 
 To verify a system after re-running the skill on its paper: `python digital-twin-scorer/scripts/add_submission.py --verify "System name"`, then rebuild (filled diamond).
+
+## Axis proposals
+The **Suggest new/modify axis** button (beside the fingerprint) opens `axis.html`. Visitors choose a new axis (blank fields for everything `anchors.json` needs: name, short name, label, range, scale, ticks, color-bar ends, optional note and highlight band) or modify an existing one (prefilled; the issue lists only the differences). The page also lists open proposals, read live from GitHub issues labeled `axis-proposal`, with their 👍/👎 counts, so visitors vote on an existing issue instead of filing a duplicate. `.github/workflows/axis-proposal.yml` adds the label to new "Axis proposal ..." issues. Accepting a proposal is a manual data change to `anchors.json` plus rescoring.
 
 ## Axes are data
 Axis order, names, ranges, tick labels, color-bar ends, and highlight bands all come from `anchors.json`. Adding an accepted axis is a data change; `build_site.py` refuses to build until every system has a score for every axis. The axis proposal process is in `CONTRIBUTING.md`.

@@ -84,16 +84,23 @@ page = page.replace("<!--BANNER-->", f'<div class="banner" role="note">{html.esc
 out = Path(args.out)
 out.write_text(page)
 
-# Review-and-submit page, opened in a new tab by the main page.
-submit_name = "submit.html" if out.name == "index.html" else out.name.replace("index", "submit")
-if submit_name == out.name:
-    submit_name = out.stem + "_submit.html"
+# Companion pages, opened in new tabs by the main page: submit (review a system) and axis (propose an axis).
+def sibling(kind):
+    if out.name == "index.html":
+        return f"{kind}.html"
+    name = out.name.replace("index", kind)
+    return name if name != out.name else f"{out.stem}_{kind}.html"
+
+
+submit_name, axis_name = sibling("submit"), sibling("axis")
 page = out.read_text().replace('/*SUBMIT_PAGE*/"submit.html"', json.dumps(submit_name))
+page = page.replace('/*AXIS_PAGE*/"axis.html"', json.dumps(axis_name))
 out.write_text(page)
-sub = (HERE / "submit_template.html").read_text()
-sub = sub.replace("/*DATA*/null", json.dumps(data, ensure_ascii=False))
-sub = sub.replace('/*REPO_URL*/""', json.dumps(args.repo_url.rstrip("/")))
-(out.parent / submit_name).write_text(sub)
+for kind, fname in (("submit", submit_name), ("axis", axis_name)):
+    sub = (HERE / f"{kind}_template.html").read_text()
+    sub = sub.replace("/*DATA*/null", json.dumps(data, ensure_ascii=False))
+    sub = sub.replace('/*REPO_URL*/""', json.dumps(args.repo_url.rstrip("/")))
+    (out.parent / fname).write_text(sub)
 counts = {}
 for s in data["systems"]:
     counts[s["status"]] = counts.get(s["status"], 0) + 1

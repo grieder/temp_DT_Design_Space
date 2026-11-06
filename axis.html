@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Suggest an axis | Digital Twin Design Landscape</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ffffff; --surface: #f5f7f9; --ink: #15181d; --muted: #5b6573; --rule: #d9dee5;
+  --accent: #2a6f97; --bad: #c8102e; --good: #1b7f45; --warn: #9a6700; --focus: #2a6f97;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151a; --surface: #1b2027; --ink: #e9edf2; --muted: #9aa5b3; --rule: #2e3540;
+    --accent: #7cc0e6; --bad: #ff6b7d; --good: #5fd08a; --warn: #e3b341; --focus: #7cc0e6; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151a; --surface: #1b2027; --ink: #e9edf2; --muted: #9aa5b3; --rule: #2e3540;
+  --accent: #7cc0e6; --bad: #ff6b7d; --good: #5fd08a; --warn: #e3b341; --focus: #7cc0e6; color-scheme: dark;
+}
+:root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Inter", "Helvetica Neue", Arial, sans-serif; font-size: 16px; line-height: 1.5; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.wrap { max-width: 900px; margin: 0 auto; padding: 0 16px 56px; }
+header { padding: 32px 0 8px; }
+h1 { font-size: clamp(26px, 4vw, 34px); font-weight: 800; letter-spacing: -0.02em; margin: 0 0 8px; line-height: 1.15; }
+h2 { font-size: 19px; font-weight: 700; margin: 32px 0 8px; }
+.lede, .sub { color: var(--muted); margin: 0 0 12px; max-width: 70ch; }
+.card { background: var(--surface); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+input[type="text"], input[type="email"], input[type="number"], select, textarea {
+  font: inherit; font-size: 14px; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--rule); border-radius: 6px; padding: 6px 8px; width: 100%;
+}
+textarea { min-height: 90px; resize: vertical; }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 12px; }
+.opt { font-weight: 400; }
+.hint { font-size: 13px; color: var(--muted); margin: 4px 0 0; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0 14px; }
+.count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.count.over { color: var(--bad); font-weight: 700; }
+.choice { display: flex; gap: 18px; flex-wrap: wrap; font-weight: 600; }
+.choice label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+.choice input { width: auto; accent-color: var(--accent); }
+.tickrow { display: grid; grid-template-columns: 90px 1fr auto; gap: 8px; margin-bottom: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-size: 13px; color: var(--muted); }
+ul.checks { list-style: none; padding: 0; margin: 0; }
+ul.checks li { padding: 4px 0 4px 26px; position: relative; font-size: 14px; }
+ul.checks li::before { position: absolute; left: 0; font-weight: 800; }
+ul.checks li.ok::before { content: "\2713"; color: var(--good); }
+ul.checks li.err::before { content: "\2717"; color: var(--bad); }
+ul.checks li.warn::before { content: "!"; color: var(--warn); padding-left: 4px; }
+ul.checks li.err { color: var(--bad); }
+ul.checks li.warn { color: var(--warn); }
+button { font: inherit; font-size: 15px; font-weight: 600; border-radius: 6px; padding: 10px 18px; cursor: pointer; border: 1px solid var(--accent); background: var(--accent); color: var(--bg); }
+button.secondary { background: transparent; color: var(--accent); }
+button.small { font-size: 13px; padding: 5px 10px; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.msg { font-size: 14px; margin-top: 10px; }
+.msg.err { color: var(--bad); }
+.notice { border-left: 4px solid var(--warn); padding: 8px 12px; font-size: 14px; background: var(--bg); border-radius: 4px; }
+.prop { padding: 10px 0; border-bottom: 1px solid var(--rule); display: flex; gap: 14px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
+.prop:last-child { border-bottom: 0; }
+.votes { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--muted); font-size: 14px; }
+.changed { background: color-mix(in srgb, var(--warn) 14%, transparent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Suggest a new or modified axis</h1>
+  <p class="lede">Propose a seventh axis, or a change to how an existing axis is defined. Proposals are discussed and voted on in GitHub issues; maintainers decide, and every scored system must be rescored before an accepted change is published.</p>
+</header>
+
+<h2>1. Open proposals</h2>
+<div class="card">
+  <p class="sub" style="margin-bottom:8px">Check these first. If a proposal already matches yours, open it on GitHub and react with 👍 or 👎 (and comment) instead of creating a similar one.</p>
+  <div id="props" aria-live="polite">Loading...</div>
+</div>
+
+<h2>2. What do you want to do?</h2>
+<div class="card">
+  <div class="choice" role="radiogroup" aria-label="Proposal type">
+    <label><input type="radio" name="kind" value="new" checked> Propose a new axis</label>
+    <label><input type="radio" name="kind" value="modify"> Modify an existing axis</label>
+  </div>
+  <label class="f" id="pickWrap" style="margin:14px 0 0" hidden>Axis to modify <select id="pick"></select></label>
+</div>
+
+<h2>3. Axis definition</h2>
+<div class="card">
+  <p class="hint" id="newNote" style="margin:0 0 12px">This would be Axis <span id="nextNum"></span>. Fill in every field marked required.</p>
+  <div class="cols">
+    <label class="f">Name (required) <input type="text" id="fName" autocomplete="off" placeholder="e.g. Cost side"></label>
+    <label class="f">Short name (required) <span class="opt">spider-plot spoke</span><input type="text" id="fShort" autocomplete="off"></label>
+  </div>
+  <label class="f">Full label (required) <span class="opt">axis title on plots</span><input type="text" id="fLabel" autocomplete="off" placeholder="e.g. Bidirectional Coupling (Loop Closure)"></label>
+  <div class="cols">
+    <label class="f">Minimum (required) <input type="number" step="any" id="fMin"></label>
+    <label class="f">Maximum (required) <input type="number" step="any" id="fMax"></label>
+    <label class="f">Scale (required)
+      <select id="fScale"><option value="">Select</option><option>linear</option><option>diverging</option><option>log10</option><option>ladder</option></select></label>
+  </div>
+  <p class="hint" style="margin:-4px 0 12px">linear: continuous low to high. diverging: centered on 0. log10: scores are base-10 logarithms. ladder: ordered maturity levels.</p>
+
+  <div style="margin-bottom:12px">
+    <div style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:4px">Tick labels (required unless the scale is log10) <span class="opt">value and what it means</span></div>
+    <div id="ticks"></div>
+    <button type="button" class="secondary small" id="addTick">Add tick</button>
+  </div>
+  <div class="cols">
+    <label class="f">Color-bar low end (required) <input type="text" id="fCbLo" autocomplete="off" placeholder="e.g. Surrogate"></label>
+    <label class="f">Color-bar high end (required) <input type="text" id="fCbHi" autocomplete="off" placeholder="e.g. Faithful Mirror"></label>
+  </div>
+  <label class="f">Note <span class="opt">(optional) what the score measures</span><textarea id="fNote" style="min-height:60px"></textarea></label>
+  <div class="row" style="margin-bottom:8px"><label class="row" style="gap:6px;font-size:14px"><input type="checkbox" id="fHl" style="width:auto"> Highlight a band on the spider plot (optional)</label></div>
+  <div class="cols" id="hlBox" hidden>
+    <label class="f">Band from <input type="number" step="any" id="fHlLo"></label>
+    <label class="f">Band to <input type="number" step="any" id="fHlHi"></label>
+    <label class="f">Band meaning <input type="text" id="fHlNote" autocomplete="off" placeholder="e.g. credible VVUQ"></label>
+  </div>
+</div>
+
+<div id="diffBox" hidden>
+  <h2>4. Changes from the current definition</h2>
+  <div class="card"><div id="diff"></div></div>
+</div>
+
+<h2 id="reasonH">4. Why</h2>
+<div class="card">
+  <label class="f"><span id="reasonLbl">Reason (required)</span> <span class="opt">(up to 500 words)</span>
+    <textarea id="fReason"></textarea></label>
+  <div class="count" id="rwc">0 / 500 words</div>
+</div>
+
+<h2 id="contactH">5. Correspondence <span class="opt" style="font-weight:400;font-size:15px">(optional)</span></h2>
+<div class="card">
+  <label class="f">Email for correspondence <input type="email" id="fEmail" autocomplete="email" placeholder="you@institution.edu"></label>
+  <p class="notice">GitHub issues on a public repository are visible to everyone. Anything you enter here, including your email, will be public. Leave it blank if you prefer to be contacted through your GitHub account.</p>
+  <label class="f" style="margin-top:14px">Comments <span class="opt">(up to 500 words)</span><textarea id="fComments"></textarea></label>
+  <div class="count" id="wc">0 / 500 words</div>
+</div>
+
+<h2 id="submitH">6. Submit</h2>
+<div class="card">
+  <ul class="checks" id="checks" aria-live="polite" style="margin-bottom:14px"></ul>
+  <div class="row">
+    <button id="submitBtn">Submit as GitHub issue</button>
+    <button class="secondary" id="copyBtn">Copy issue text</button>
+  </div>
+  <div class="msg" id="msg" role="status"></div>
+  <p class="hint">Submitting takes you to a new GitHub issue with the proposal filled in. GitHub requires you to be signed in, and you finish by pressing "Submit new issue" there. The proposal then appears in the list above, where others can vote.</p>
+</div>
+</div>
+
+<script>
+const DATA = {"version": "0.9", "statuses": {"anchor": "Anchor (in the manuscript)", "reference": "Reference anchor (skill calibration, not in the manuscript)", "candidate": "Candidate anchor", "community-verified": "Community submission, verified by maintainers", "community-pending": "Community submission, awaiting review"}, "axis_order": ["1", "2", "3", "4", "5", "6"], "axes": {"1": {"name": "Coupling", "short": "Coupling", "label": "Bidirectional Coupling (Loop Closure)", "min": 0, "max": 2, "scale": "linear", "ticks": [[0, "Digital Model"], [1, "Digital Shadow"], [2, "Digital Twin"]], "cbar": ["Decoupled / Offline", "Tightly Coupled (Twin)"]}, "2": {"name": "Fidelity", "short": "Surrogate→Mirror", "label": "Forward-Model Fidelity", "min": 0, "max": 2, "scale": "linear", "ticks": [[0, "Surrogate"], [1, "Hybrid"], [2, "Faithful Mirror"]], "cbar": ["Surrogate", "Faithful Mirror"]}, "3": {"name": "Cost side", "short": "Cost Side", "label": "Cost Side", "min": -2, "max": 2, "scale": "diverging", "ticks": [[-2, "Digital"], [0, "Comparable"], [2, "Physical"]], "cbar": ["Digital", "Physical"]}, "4": {"name": "Model dimensionality", "short": "Model Dimensionality", "label": "Model Dimensionality (log₁₀ N)", "min": 0, "max": 9, "scale": "log10", "ticks": null, "cbar": ["0", "9"], "note": "log10 of parameters fitted to data from the system's own campaign (measured or computed)"}, "5": {"name": "VVUQ", "short": "VVUQ", "label": "VVUQ Maturity", "min": 0, "max": 4, "scale": "ladder", "ticks": [[0, "None"], [1, "Point"], [2, "Val. or UQ"], [3, "Val. + UQ"], [4, "Credibility"]], "cbar": ["None", "Credibility"]}, "6": {"name": "Autonomy", "short": "Autonomy", "label": "Autonomy", "min": 0, "max": 2, "scale": "linear", "ticks": [[0, "Human-in-the-Loop"], [1, "Semi-autonomous"], [2, "Autonomous"]], "cbar": ["Human-in-the-Loop", "Autonomous"]}}, "systems": [{"name": "DTCS", "ref": "Qian et al., Nat. Comput. Sci. 2025", "status": "anchor", "scores": {"1": 1.0, "2": 1.7, "3": 1.5, "4": 0.8, "5": 2.0, "6": 1.0}}, {"name": "Bayesian Conav.", "ref": "Slautin et al., ACS Nano 2026", "status": "anchor", "scores": {"1": 2.0, "2": 1.1, "3": 0.2, "4": 0.5, "5": 2.5, "6": 1.8}}, {"name": "MATTERIX", "ref": "Darvish et al., Nat. Comput. Sci. 2026", "status": "anchor", "scores": {"1": 1.0, "2": 1.2, "3": 0.7, "4": 0.0, "5": 1.3, "6": 0.9}}, {"name": "A-Lab", "ref": "Szymanski et al., Nature 2023", "status": "anchor", "scores": {"1": 1.3, "2": 0.9, "3": 1.8, "4": 7.3, "5": 2.3, "6": 1.7}}, {"name": "CatDT", "ref": "Song et al., arXiv 2026", "status": "anchor", "scores": {"1": 0.0, "2": 1.4, "3": -1.6, "4": 5.0, "5": 2.0, "6": 1.8}}, {"name": "Li-ion battery", "ref": "Wang et al., Nature 2022", "status": "anchor", "scores": {"1": 0.3, "2": 1.8, "3": 1.4, "4": 0.7, "5": 1.8, "6": 0.2}}, {"name": "Raman DT", "ref": "Kowalski & Liang, ACS AMI 2026", "status": "anchor", "scores": {"1": 0.0, "2": 1.9, "3": 1.5, "4": 0.0, "5": 2.0, "6": 0.1}}, {"name": "QCloudSim", "ref": "Luo et al., SIGSIM-PADS 2025", "status": "anchor", "scores": {"1": 0.2, "2": 0.3, "3": 1.6, "4": 0.0, "5": 0.3, "6": 0.3}}, {"name": "C³", "ref": "Wittler et al., PR Applied 2021", "status": "anchor", "scores": {"1": 1.0, "2": 1.3, "3": 0.8, "4": 1.3, "5": 2.5, "6": 1.2}}, {"name": "LTME", "ref": "Sentz et al., Quantum 2026", "status": "anchor", "scores": {"1": 0.0, "2": 1.3, "3": 1.2, "4": 2.3, "5": 1.8, "6": 0.3}}, {"name": "CAMEO", "ref": "Kusne et al., Nat. Commun. 2020", "status": "reference", "scores": {"1": 1.4, "2": 0.5, "3": 1.6, "4": 1.0, "5": 2.5, "6": 1.2}}, {"name": "Liu 2022", "ref": "Liu et al., Nat. Mach. Intell. 2022", "status": "reference", "scores": {"1": 1.8, "2": 0.2, "3": 1.5, "4": 6.0, "5": 2.3, "6": 1.6}}, {"name": "Mobile robotic chemist", "ref": "Burger et al., Nature 2020", "status": "reference", "scores": {"1": 1.3, "2": 0.0, "3": 1.8, "4": 1.1, "5": 2.0, "6": 1.9}}, {"name": "Dai 2024", "ref": "Dai et al., Nature 2024", "status": "reference", "scores": {"1": 0.0, "2": 0.0, "3": 1.8, "4": 0.0, "5": 1.0, "6": 1.7}}, {"name": "Koscher 2023", "ref": "Koscher et al., Science 2023", "status": "reference", "scores": {"1": 1.3, "2": 0.1, "3": 1.7, "4": 6.0, "5": 2.5, "6": 1.6}}, {"name": "VDMN", "ref": "Robertson et al., arXiv 2025", "status": "reference", "scores": {"1": 0.0, "2": 1.3, "3": 1.5, "4": 4.1, "5": 3.0, "6": 0.1}}, {"name": "Müller 2025", "ref": "Mueller et al., arXiv 2025", "status": "reference", "scores": {"1": 0.5, "2": 1.2, "3": 1.3, "4": 0.6, "5": 2.3, "6": 0.3}}]};
+const REPO_URL = "https://github.com/grieder/temp_DT_Design_Space";
+const MAX_WORDS = 500, MAX_URL = 7500;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"})[c]);
+const words = s => (s.trim().match(/\S+/g) || []).length;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const meta = DATA.axes, AX = DATA.axis_order;
+const SCALES = ["linear", "diverging", "log10", "ladder"];
+
+// ---------- open proposals (GitHub issues labeled axis-proposal; votes are 👍/👎 reactions)
+function loadProposals() {
+  const box = $("props");
+  if (!REPO_URL) { box.textContent = "The list appears once the repository is connected."; return; }
+  const repo = REPO_URL.replace(/^https?:\/\/github\.com\//, "");
+  const all = `${REPO_URL}/issues?q=${encodeURIComponent("is:issue is:open label:axis-proposal")}`;
+  fetch(`https://api.github.com/repos/${repo}/issues?state=open&labels=axis-proposal&per_page=50`, {headers: {Accept: "application/vnd.github+json"}})
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(list => {
+      list = list.filter(i => !i.pull_request).map(i => ({...i, up: i.reactions?.["+1"] || 0, down: i.reactions?.["-1"] || 0}))
+        .sort((a, b) => (b.up - b.down) - (a.up - a.down));
+      box.innerHTML = list.length ? list.map(i => `<div class="prop"><span><a href="${esc(i.html_url)}" target="_blank" rel="noopener">${esc(i.title)}</a>
+          <span class="hint"> #${i.number}, ${i.comments} comment${i.comments === 1 ? "" : "s"}</span></span>
+          <span class="votes">👍 ${i.up} &nbsp; 👎 ${i.down} &nbsp; <a href="${esc(i.html_url)}" target="_blank" rel="noopener">Vote on GitHub</a></span></div>`).join("")
+        : `No open proposals yet. <a href="${esc(all)}" target="_blank" rel="noopener">View on GitHub</a>.`;
+    })
+    .catch(() => { box.innerHTML = `Could not load the list (offline or GitHub rate limit). <a href="${esc(all)}" target="_blank" rel="noopener">View open proposals on GitHub</a>.`; });
+}
+
+// ---------- form <-> axis object
+const val = id => $(id).value.trim();
+function tickRow(v = "", l = "") {
+  const d = document.createElement("div"); d.className = "tickrow";
+  d.innerHTML = `<input type="number" step="any" aria-label="Tick value" placeholder="value"><input type="text" aria-label="Tick label" placeholder="label"><button type="button" class="secondary small" aria-label="Remove tick">Remove</button>`;
+  d.children[0].value = v; d.children[1].value = l;
+  d.children[2].onclick = () => { d.remove(); update(); };
+  d.querySelectorAll("input").forEach(e => e.addEventListener("input", update));
+  $("ticks").append(d);
+}
+function fill(ax) {
+  ax = ax || {};
+  $("fName").value = ax.name || ""; $("fShort").value = ax.short || ""; $("fLabel").value = ax.label || "";
+  $("fMin").value = ax.min ?? ""; $("fMax").value = ax.max ?? ""; $("fScale").value = ax.scale || "";
+  $("ticks").innerHTML = ""; (ax.ticks || []).forEach(([v, l]) => tickRow(v, l)); if (!ax.ticks) { tickRow(); tickRow(); }
+  $("fCbLo").value = ax.cbar?.[0] || ""; $("fCbHi").value = ax.cbar?.[1] || "";
+  $("fNote").value = ax.note || "";
+  $("fHl").checked = !!ax.highlight_band;
+  $("fHlLo").value = ax.highlight_band?.[0] ?? ""; $("fHlHi").value = ax.highlight_band?.[1] ?? ""; $("fHlNote").value = ax.highlight_note || "";
+  $("hlBox").hidden = !$("fHl").checked;
+}
+const num = id => { const v = val(id); return v === "" ? null : Number(v); };
+function collect() {
+  const ticks = [...$("ticks").children].map(r => [r.children[0].value.trim() === "" ? null : Number(r.children[0].value), r.children[1].value.trim()])
+    .filter(([v, l]) => v !== null || l);
+  const ax = {name: val("fName"), short: val("fShort"), label: val("fLabel"), min: num("fMin"), max: num("fMax"),
+    scale: val("fScale"), ticks: ticks.length ? ticks : null, cbar: [val("fCbLo"), val("fCbHi")]};
+  if (val("fNote")) ax.note = val("fNote");
+  if ($("fHl").checked) { ax.highlight_band = [num("fHlLo"), num("fHlHi")]; if (val("fHlNote")) ax.highlight_note = val("fHlNote"); }
+  return ax;
+}
+const kind = () => document.querySelector('input[name="kind"]:checked').value;
+const current = () => meta[$("pick").value];
+
+// ---------- diff
+const fmtTicks = t => t ? t.map(([v, l]) => `${v} = ${l}`).join("; ") : "none";
+const FIELDS = [
+  ["Name", a => a.name], ["Short name", a => a.short], ["Full label", a => a.label],
+  ["Minimum", a => a.min], ["Maximum", a => a.max], ["Scale", a => a.scale],
+  ["Ticks", a => fmtTicks(a.ticks)], ["Color-bar low end", a => a.cbar?.[0]], ["Color-bar high end", a => a.cbar?.[1]],
+  ["Note", a => a.note || "none"],
+  ["Highlight band", a => a.highlight_band ? `${a.highlight_band[0]} to ${a.highlight_band[1]}` : "none"],
+  ["Band meaning", a => a.highlight_note || "none"]
+];
+function diff(before, after) {
+  return FIELDS.map(([n, f]) => [n, String(f(before) ?? ""), String(f(after) ?? "")]).filter(([, b, a]) => b !== a);
+}
+
+// ---------- validation
+function check(ax) {
+  const errs = [];
+  const need = (v, msg) => { if (!v) errs.push(msg); };
+  need(ax.name, "Name is required"); need(ax.short, "Short name is required"); need(ax.label, "Full label is required");
+  const range = ax.min !== null && ax.max !== null && Number.isFinite(ax.min) && Number.isFinite(ax.max);
+  if (!range) errs.push("Minimum and maximum are required numbers");
+  else if (ax.min >= ax.max) errs.push("Minimum must be less than maximum");
+  if (!SCALES.includes(ax.scale)) errs.push("Choose a scale");
+  if (ax.scale !== "log10") {
+    if (!ax.ticks || ax.ticks.length < 2) errs.push("At least two tick labels are required (only log10 axes may omit them)");
+  }
+  (ax.ticks || []).forEach(([v, l], i) => {
+    if (v === null || !Number.isFinite(v) || !l) errs.push(`Tick ${i + 1} needs both a value and a label`);
+    else if (range && (v < ax.min || v > ax.max)) errs.push(`Tick ${i + 1} (${v}) is outside ${ax.min} to ${ax.max}`);
+  });
+  if (new Set((ax.ticks || []).map(t => t[0])).size < (ax.ticks || []).length) errs.push("Two ticks share the same value");
+  need(ax.cbar[0] && ax.cbar[1], "Both color-bar end labels are required");
+  if (ax.highlight_band) {
+    const [lo, hi] = ax.highlight_band;
+    if (lo === null || hi === null || !(lo < hi)) errs.push("The highlight band needs a start below its end");
+    else if (range && (lo < ax.min || hi > ax.max)) errs.push("The highlight band must lie within the axis range");
+  }
+  return errs;
+}
+function update() {
+  const ax = collect(), errs = check(ax), warns = [], isNew = kind() === "new";
+  if (isNew && ax.name && Object.values(meta).some(m => m.name.toLowerCase() === ax.name.toLowerCase())) errs.push("An axis with this name already exists; use Modify instead");
+  const ch = isNew ? [] : diff(current(), ax);
+  $("diffBox").hidden = isNew;
+  $("diff").innerHTML = isNew ? "" : ch.length
+    ? `<table><thead><tr><th>Field</th><th>Current</th><th>Proposed</th></tr></thead><tbody>${ch.map(([n, b, a]) => `<tr class="changed"><td>${esc(n)}</td><td>${esc(b)}</td><td>${esc(a)}</td></tr>`).join("")}</tbody></table>`
+    : "No changes yet. Edit a field above.";
+  if (!isNew && !ch.length) errs.push("Nothing has been changed from the current definition");
+  if (!val("fReason")) errs.push(isNew ? "Explain why this axis is needed and how to score it" : "Explain why this change is needed");
+  const rn = words($("fReason").value), n = words($("fComments").value), email = val("fEmail");
+  if (rn > MAX_WORDS) errs.push(`The reason is ${rn} words; the limit is ${MAX_WORDS}`);
+  if (n > MAX_WORDS) errs.push(`Comments are ${n} words; the limit is ${MAX_WORDS}`);
+  if (email && !EMAIL_RE.test(email)) errs.push("The email address does not look valid");
+  $("rwc").textContent = `${rn} / ${MAX_WORDS} words`; $("rwc").classList.toggle("over", rn > MAX_WORDS);
+  $("wc").textContent = `${n} / ${MAX_WORDS} words`; $("wc").classList.toggle("over", n > MAX_WORDS);
+  $("checks").innerHTML = errs.length ? errs.map(e => `<li class="err">${esc(e)}</li>`).join("") : `<li class="ok"><b>All required fields are complete.</b></li>`;
+  $("submitBtn").disabled = $("copyBtn").disabled = errs.length > 0;
+  return {ax, errs, ch};
+}
+
+// ---------- issue text
+const cell = s => String(s).replace(/\|/g, "\\|").replace(/\n+/g, " ");
+function issue() {
+  const {ax, ch} = update(), isNew = kind() === "new", cur = isNew ? null : current(), id = $("pick").value;
+  const title = isNew ? `Axis proposal (new): ${ax.name}` : `Axis proposal (modify axis ${id}): ${cur.name}`;
+  const parts = [
+    `### Proposal type\n${isNew ? "New axis" : `Modify axis ${id} (${cur.name})`}`,
+    `### ${isNew ? "Why this axis, and how to score it" : "Reason for the change"}\n${val("fReason")}`
+  ];
+  if (isNew) parts.push(`### Proposed axis\n| Field | Value |\n|---|---|\n${FIELDS.map(([n, f]) => `| ${n} | ${cell(f(ax) ?? "")} |`).join("\n")}`);
+  else parts.push(`### Changes\n| Field | Current | Proposed |\n|---|---|---|\n${ch.map(([n, b, a]) => `| ${n} | ${cell(b)} | ${cell(a)} |`).join("\n")}`);
+  parts.push(`### Axis definition (JSON)\n\`\`\`json\n${JSON.stringify(ax, null, 1)}\n\`\`\``,
+    `### Contact email\n${val("fEmail") || "_No response_"}`,
+    `### Comments\n${val("fComments") || "_No response_"}`,
+    "_React with 👍 or 👎 on this issue to vote._");
+  return {title, body: parts.join("\n\n")};
+}
+function go() {
+  const {errs} = update(); if (errs.length) return;
+  if (!REPO_URL) return fail("Submissions are not open yet. Use \"Copy issue text\" and send it to the team.");
+  const {title, body} = issue(), lab = `&labels=${encodeURIComponent("axis-proposal")}`;
+  let url = `${REPO_URL}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}${lab}`;
+  if (url.length <= MAX_URL) { location.href = url; return; }
+  const stub = "The full proposal was copied to your clipboard. Delete this line and paste it here.";
+  url = `${REPO_URL}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(stub)}${lab}`;
+  ok("The proposal is long, so it was copied to your clipboard. Paste it into the issue that opens next.");
+  const next = () => { location.href = url; };
+  (navigator.clipboard ? navigator.clipboard.writeText(body) : Promise.reject()).then(next, next);
+}
+function copyText() {
+  const {errs} = update(); if (errs.length) return;
+  const {title, body} = issue();
+  navigator.clipboard.writeText(`${title}\n\n${body}`).then(() => ok("Issue text copied."), () => fail("Could not copy. Select the text manually."));
+}
+function ok(t) { $("msg").className = "msg"; $("msg").textContent = t; }
+function fail(t) { $("msg").className = "msg err"; $("msg").textContent = t; }
+
+// ---------- wiring
+AX.forEach(a => $("pick").append(new Option(`${a}. ${meta[a].name}`, a)));
+$("nextNum").textContent = Math.max(...AX.map(Number)) + 1;
+function setKind() {
+  const isNew = kind() === "new";
+  $("pickWrap").hidden = isNew; $("newNote").hidden = !isNew;
+  $("reasonLbl").textContent = isNew ? "Why this axis is needed and how to score it (required)" : "Reason for the change (required)";
+  fill(isNew ? null : current());
+  update();
+}
+document.querySelectorAll('input[name="kind"]').forEach(r => r.onchange = setKind);
+$("pick").onchange = setKind;
+$("addTick").onclick = () => { tickRow(); update(); };
+$("fHl").onchange = () => { $("hlBox").hidden = !$("fHl").checked; update(); };
+document.querySelectorAll("input,select,textarea").forEach(e => { e.addEventListener("input", update); e.addEventListener("change", update); });
+$("submitBtn").onclick = go; $("copyBtn").onclick = copyText;
+loadProposals(); setKind();
+</script>
+</body>
+</html>

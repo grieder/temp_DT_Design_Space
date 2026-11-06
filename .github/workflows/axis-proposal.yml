@@ -1,0 +1,23 @@
+# Label axis proposals (opened from the website's axis page) so the page can list them for voting.
+name: Label axis proposal
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  label:
+    if: startsWith(github.event.issue.title, 'Axis proposal')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add label and invite votes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh label create axis-proposal --color 0E8A16 --description "Proposed new or modified axis" --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
+          gh issue edit "$ISSUE_NUMBER" --add-label axis-proposal --repo "$GITHUB_REPOSITORY"
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body "Thanks. This proposal is now listed on the website's axis page. To support or oppose it, react with 👍 or 👎 on the first post of this issue and add your reasoning as a comment. Please do not open a duplicate; comment here instead."
