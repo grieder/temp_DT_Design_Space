@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Suggest an axis | Digital Twin Design Landscape</title>
+<title>Propose an axis change | Digital Twin Design Landscape</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -49,7 +49,7 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font
 .choice label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
 .choice input { width: auto; accent-color: var(--accent); }
 .levelrow { display: grid; grid-template-columns: 80px 140px 1fr auto; gap: 8px; margin-bottom: 6px; }
-@media (max-width: 640px) { .levelrow { grid-template-columns: 1fr 1fr; } .levelrow input:nth-child(3) { grid-column: 1 / -1; } }
+@media (max-width: 640px) { .levelrow { grid-template-columns: 1fr 1fr; } .levelrow textarea { grid-column: 1 / -1; } }
 .tickrow { display: grid; grid-template-columns: 90px 1fr auto; gap: 8px; margin-bottom: 6px; }
 table { border-collapse: collapse; width: 100%; font-size: 14px; }
 th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--rule); vertical-align: top; }
@@ -79,7 +79,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 <body>
 <div class="wrap">
 <header>
-  <h1>Suggest a new or modified axis</h1>
+  <h1>Propose a modification or new axis</h1>
   <p class="lede">Propose a seventh axis, or a change to how an existing axis is defined. Proposals are discussed and voted on in GitHub issues; maintainers decide, and every scored system must be rescored before an accepted change is published.</p>
 </header>
 
@@ -106,7 +106,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
     <label class="f">Short name (required) <span class="opt">spider-plot spoke</span><input type="text" id="fShort" autocomplete="off"></label>
   </div>
   <label class="f">Full label (required) <span class="opt">axis title on plots</span><input type="text" id="fLabel" autocomplete="off" placeholder="e.g. Bidirectional Coupling (Loop Closure)"></label>
-  <label class="f">Description (required) <span class="opt">the question this axis answers, e.g. "What is the forward map made of?"</span><textarea id="fDesc" style="min-height:60px"></textarea></label>
+  <label class="f">Description (required) <span class="opt">the question this axis answers, e.g. "What is the forward map made of?"</span><textarea id="fDesc" style="min-height:84px"></textarea></label>
   <div class="cols">
     <label class="f">Minimum (required) <input type="number" step="any" id="fMin"></label>
     <label class="f">Maximum (required) <input type="number" step="any" id="fMax"></label>
@@ -213,10 +213,10 @@ function tickRow(v = "", l = "") {
 }
 function levelRow(v = "", l = "", t = "") {
   const d = document.createElement("div"); d.className = "levelrow";
-  d.innerHTML = `<input type="text" aria-label="Level value" placeholder="value, e.g. 1 or 0-1"><input type="text" aria-label="Level name" placeholder="name (optional)"><input type="text" aria-label="Level description" placeholder="what this level means"><button type="button" class="secondary small" aria-label="Remove level">Remove</button>`;
+  d.innerHTML = `<input type="text" aria-label="Level value" placeholder="value, e.g. 1 or 0-1"><input type="text" aria-label="Level name" placeholder="name (optional)"><textarea aria-label="Level description" placeholder="what this level means" style="min-height:84px"></textarea><button type="button" class="secondary small" aria-label="Remove level">Remove</button>`;
   d.children[0].value = v; d.children[1].value = l; d.children[2].value = t;
   d.children[3].onclick = () => { d.remove(); update(); };
-  d.querySelectorAll("input").forEach(e => e.addEventListener("input", update));
+  d.querySelectorAll("input,textarea").forEach(e => e.addEventListener("input", update));
   $("levels").append(d);
 }
 function fill(ax) {
