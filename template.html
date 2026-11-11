@@ -34,7 +34,8 @@
   --focus: #7cc0e6; color-scheme: dark;
 }
 :root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
-html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+html { scroll-padding-top: calc(60px + env(safe-area-inset-top, 0px)); scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 *, *::before, *::after { box-sizing: inherit; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
@@ -44,7 +45,12 @@ body {
 a { color: var(--accent); }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
-header { padding: 40px 0 8px; }
+nav.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; flex-wrap: wrap; gap: 4px 22px; align-items: center;
+  padding: 12px 0; background: var(--bg); border-bottom: 1px solid var(--rule); font-size: 14px; font-weight: 600; }
+nav.top a { color: var(--ink); text-decoration: none; padding: 2px 0; border-bottom: 2px solid transparent; }
+nav.top a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+nav.top a.brand { margin-right: auto; font-weight: 800; letter-spacing: -0.01em; }
+header { padding: 32px 0 8px; }
 h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 800; letter-spacing: -0.02em; margin: 0 0 8px; line-height: 1.1; }
 .lede { color: var(--muted); max-width: 70ch; margin: 0; }
 h2 { font-size: 22px; font-weight: 700; margin: 48px 0 6px; letter-spacing: -0.01em; }
@@ -75,7 +81,7 @@ input[type="range"] { width: 120px; accent-color: var(--accent); }
 .tooltip td { padding: 1px 8px 1px 0; }
 .tooltip td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
 
-aside.fingerprint { background: var(--surface); border-radius: 10px; padding: 16px; position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); }
+aside.fingerprint { background: var(--surface); border-radius: 10px; padding: 16px; position: sticky; top: calc(64px + env(safe-area-inset-top, 0px)); }
 aside h3 { margin: 0 0 2px; font-size: 18px; font-weight: 700; }
 aside .ref { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
 aside .hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
@@ -120,13 +126,20 @@ footer { color: var(--muted); font-size: 13px; padding: 48px 0 40px; border-top:
 .legend svg { vertical-align: -3px; margin-right: 4px; }
 .banner { background: #fff4d6; color: #5c4400; border-bottom: 1px solid #e8d49a; font-size: 14px; font-weight: 600; text-align: center; padding: 8px 16px; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .banner { background: #3a2f12; color: #f3dc9b; border-color: #5c4a1c; } }
+a.btnlink { display: inline-block; font-size: 14px; font-weight: 600; border-radius: 6px; padding: 8px 14px; text-decoration: none; border: 1px solid var(--accent); background: var(--accent); color: var(--bg); }
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 </style>
 </head>
 <body>
 <div class="wrap">
 <!--BANNER-->
-<header>
+<nav class="top" aria-label="Sections">
+  <a class="brand" href="#top">Digital Twin Design Landscape</a>
+  <a href="#explore">Visualization</a>
+  <a href="#skill">Scoring skill</a>
+  <a href="#place">Add your system</a>
+</nav>
+<header id="top">
   <h1>Digital Twin Design Landscape</h1>
   <p class="lede">Digital twins and related systems in chemistry, materials science, and quantum information science, scored on six design axes. Choose what each plot dimension shows, compare fingerprints, and place your own system on the map.</p>
 </header>
@@ -134,7 +147,11 @@ footer { color: var(--muted); font-size: 13px; padding: 48px 0 40px; border-top:
 <h2 id="explore">Explore the landscape</h2>
 <p class="sub">Hover a point for its scores; click a point or a table row to show its fingerprint. Axis 4 is a base-10 logarithm.</p>
 
-<div class="controls" role="group" aria-label="Plot settings">
+<div class="explorer">
+  <div>
+  <div class="plotbox"><div id="plot"></div><div class="tooltip" id="tip" role="status"></div></div>
+  <p class="legend" id="legend"></p>
+<div class="controls" role="group" aria-label="Plot settings" style="margin-top:14px">
   <label class="control">X axis <select id="xSel"></select></label>
   <label class="control">Y axis <select id="ySel"></select></label>
   <label class="control">Color <select id="cSel"></select></label>
@@ -150,11 +167,6 @@ footer { color: var(--muted); font-size: 13px; padding: 48px 0 40px; border-top:
   <label class="control" id="dpiWrap">Resolution <select id="exportDpi"><option value="72">72 dpi</option><option value="150">150 dpi</option><option value="300" selected>300 dpi</option><option value="600">600 dpi</option></select></label>
   <button class="secondary" id="exportBtn" type="button">Export plot</button>
 </div>
-
-<div class="explorer">
-  <div>
-  <div class="plotbox"><div id="plot"></div><div class="tooltip" id="tip" role="status"></div></div>
-  <p class="legend" id="legend"></p>
   </div>
   <aside class="fingerprint" aria-live="polite">
     <h3 id="fpName">Fingerprint</h3>
@@ -169,7 +181,15 @@ footer { color: var(--muted); font-size: 13px; padding: 48px 0 40px; border-top:
 <p class="sub">Select a column header to sort.</p>
 <div class="tablewrap"><table class="data" id="tbl"></table></div>
 
-<h2 id="place">Place your system</h2>
+<h2 id="skill">Scoring skill</h2>
+<p class="sub">The scoring skill reads a paper and scores it on the six axes, with a basis for every score, so the result matches the anchors on this map.</p>
+<div class="card">
+  <div class="row" style="margin-bottom:10px"><a class="btnlink" id="skillBtn" href="#">Download the scoring skill</a>
+    <a href="https://support.claude.com/en/articles/12512180-use-skills-in-claude" target="_blank" rel="noopener">How to add a skill to Claude</a></div>
+  <p style="margin:0">Then upload a manuscript to Claude and ask it to score the system. Load the JSON file it returns under "Add your system" below.</p>
+</div>
+
+<h2 id="place">Add your system</h2>
 <p class="sub">Your system is drawn as a star on the plot and added to the table. Nothing you enter here leaves your browser.</p>
 <div class="place">
   <div class="card">
@@ -583,8 +603,11 @@ $("submitBtn").onclick = () => {
   window.open(`${SUBMIT_PAGE}#d=${b64}`, "_blank", "noopener");
   $("sMsg").className = "msg"; $("sMsg").textContent = `Opened the review page for ${s.name} in a new tab.`;
 };
-if (SKILL_URL) $("skillLink").href = SKILL_URL;
-else $("skillLink").replaceWith(document.createTextNode("scoring skill (digital-twin-scorer.skill, shared with this page)"));
+if (SKILL_URL) { $("skillLink").href = SKILL_URL; $("skillBtn").href = SKILL_URL; }
+else {
+  $("skillLink").replaceWith(document.createTextNode("scoring skill (digital-twin-scorer.skill, shared with this page)"));
+  $("skillBtn").replaceWith(document.createTextNode("The skill file (digital-twin-scorer.skill) is shared alongside this page."));
+}
 for (const id of ["rubricLink"]) {
   if (REPO_URL) $(id).href = `${REPO_URL}/blob/main/digital-twin-scorer/references/rubric.md`;
   else $(id).replaceWith(document.createTextNode("current rubric and decision rules (digital-twin-scorer/references/rubric.md)"));
