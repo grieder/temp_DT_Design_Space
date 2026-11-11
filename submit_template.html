@@ -172,7 +172,7 @@ function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": 
 
 // ---------- read the form into a submission object
 function collect() {
-  const out = {name: $("fName").value.trim(), ref: $("fRef").value.trim(), doi: cleanDoi($("fDoi").value), scores: {}, evidence: {},
+  const out = {name: $("fName").value.trim(), ref: $("fRef").value.trim(), doi: cleanDoi($("fDoi").value), skill_version: sys.skill_version, scores: {}, evidence: {},
     status: "community-pending", rubric_version: $("fVer").value};
   if ($("fNoVM").checked) out.no_virtual_model = true;
   AX.forEach(a => {
@@ -216,6 +216,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Mirrors digital-twin-scorer/scripts/validate_score.py.
 function check(s) {
   const errs = [], warns = [], oks = [];
+  if (!s.skill_version || !AX.every(a => s.evidence[a] && s.evidence[a].basis)) errs.push("These scores did not come from the scoring skill. Manually entered scores cannot be submitted; load the skill's JSON file on the main page first.");
   (s.name ? oks : errs).push(s.name ? "System name" : "System name is missing");
   (s.ref ? oks : errs).push(s.ref ? "Source reference" : "Source reference is missing");
   if (!s.doi) errs.push("DOI is missing");

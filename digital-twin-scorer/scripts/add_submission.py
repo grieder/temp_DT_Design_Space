@@ -50,6 +50,11 @@ def clean(obj, data, check_doi):
         ok, msg = check_doi_online(doi.strip())
         if ok is False:
             errs.append(msg)
+    ev = obj.get("evidence")
+    if not obj.get("skill_version") or not isinstance(ev, dict) or not all(
+            isinstance(ev.get(a), dict) and ev[a].get("basis") for a in order):
+        errs.append("the score file must be the JSON produced by the scoring skill "
+                    "(skill_version and evidence for every axis); manually entered scores cannot be submitted")
     scores = obj.get("scores")
     out = {}
     if not isinstance(scores, dict):

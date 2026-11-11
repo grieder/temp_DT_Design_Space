@@ -49,7 +49,6 @@ nav.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; dis
   padding: 12px 0; background: var(--bg); border-bottom: 1px solid var(--rule); font-size: 14px; font-weight: 600; }
 nav.top a { color: var(--ink); text-decoration: none; padding: 2px 0; border-bottom: 2px solid transparent; }
 nav.top a:hover { color: var(--accent); border-bottom-color: var(--accent); }
-nav.top a.brand { margin-right: auto; font-weight: 800; letter-spacing: -0.01em; }
 header { padding: 32px 0 8px; }
 h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 800; letter-spacing: -0.02em; margin: 0 0 8px; line-height: 1.1; }
 .lede { color: var(--muted); max-width: 70ch; margin: 0; }
@@ -127,6 +126,7 @@ footer { color: var(--muted); font-size: 13px; padding: 48px 0 40px; border-top:
 .banner { background: #fff4d6; color: #5c4400; border-bottom: 1px solid #e8d49a; font-size: 14px; font-weight: 600; text-align: center; padding: 8px 16px; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .banner { background: #3a2f12; color: #f3dc9b; border-color: #5c4a1c; } }
 a.btnlink { display: inline-block; font-size: 14px; font-weight: 600; border-radius: 6px; padding: 8px 14px; text-decoration: none; border: 1px solid var(--accent); background: var(--accent); color: var(--bg); }
+.notice { border-left: 4px solid var(--vvuq); padding: 6px 10px; background: var(--bg); border-radius: 4px; color: var(--ink) !important; }
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 </style>
 </head>
@@ -134,10 +134,11 @@ a.btnlink { display: inline-block; font-size: 14px; font-weight: 600; border-rad
 <div class="wrap">
 <!--BANNER-->
 <nav class="top" aria-label="Sections">
-  <a class="brand" href="#top">Digital Twin Design Landscape</a>
   <a href="#explore">Visualization</a>
+  <a href="#table">Data table</a>
   <a href="#skill">Scoring skill</a>
   <a href="#place">Add your system</a>
+  <a href="#" id="navRubric" target="_blank" rel="noopener">Rubric</a>
 </nav>
 <header id="top">
   <h1>Digital Twin Design Landscape</h1>
@@ -178,7 +179,7 @@ a.btnlink { display: inline-block; font-size: 14px; font-weight: 600; border-rad
 </div>
 
 <h2 id="table">Scores</h2>
-<p class="sub">Select a column header to sort.</p>
+<p class="sub">Select a column header to sort. System names follow the "Label text" setting under the plot.</p>
 <div class="tablewrap"><table class="data" id="tbl"></table></div>
 
 <h2 id="skill">Scoring skill</h2>
@@ -190,20 +191,10 @@ a.btnlink { display: inline-block; font-size: 14px; font-weight: 600; border-rad
 </div>
 
 <h2 id="place">Add your system</h2>
-<p class="sub">Your system is drawn as a star on the plot and added to the table. Nothing you enter here leaves your browser.</p>
+<p class="sub">Your system is drawn as a star on the plot and added to the table. Nothing you enter here leaves your browser. To add your system to the website perminantly go to submit your system for review below.</p>
 <div class="place">
   <div class="card">
-    <h3>Enter scores</h3>
-    <p>Score each axis with the rubric, then add the system to the map.</p>
-    <div class="grid7" id="manual"></div>
-    <div class="row">
-      <label class="control" style="flex:1 1 180px">Name <input type="text" id="mName" value="My system" style="font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--rule);border-radius:6px;background:var(--bg);color:var(--ink)"></label>
-    </div>
-    <div class="row" style="margin-top:12px"><button id="addManual">Add to map</button><button class="secondary" id="clearNew">Remove added systems</button></div>
-    <div class="msg" id="mMsg"></div>
-  </div>
-  <div class="card">
-    <h3>Load scores from the scoring skill</h3>
+    <h3>Load scores from the scoring skill <span class="opt" style="font-weight:400;font-size:13px">(required to submit)</span></h3>
     <p>The scoring skill reads a manuscript and returns a JSON score file. Load that file, or paste its contents, to place the system.</p>
     <ol class="steps">
       <li>Download the <a href="#" id="skillLink">scoring skill</a> and <a href="https://support.claude.com/en/articles/12512180-use-skills-in-claude" target="_blank" rel="noopener">add it to Claude</a>.</li>
@@ -212,14 +203,25 @@ a.btnlink { display: inline-block; font-size: 14px; font-weight: 600; border-rad
     </ol>
     <div class="row" style="margin:10px 0"><input type="file" id="jsonFile" accept=".json,application/json"></div>
     <label class="vh" for="jsonText">Paste score JSON</label>
-    <textarea id="jsonText" placeholder='{"name": "My twin", "scores": {"1": 1.2, "2": 1.5, "3": 0.8, "4": 1.0, "5": 2.0, "6": 1.0}}'></textarea>
+    <textarea id="jsonText" placeholder='Paste the JSON file returned by the scoring skill'></textarea>
     <div class="row" style="margin-top:10px"><button id="addJson">Add pasted scores</button></div>
     <div class="msg" id="jMsg"></div>
+  </div>
+  <div class="card">
+    <h3>Enter scores</h3>
+    <p>Score each axis with the rubric, then add the system to the map.</p>
+    <p class="notice"><b>For exploring only.</b> You cannot submit manually entered scores for review. To submit a system, score its paper with the scoring skill and load the JSON file it returns (left).</p>
+    <div class="grid7" id="manual"></div>
+    <div class="row">
+      <label class="control" style="flex:1 1 180px">Name <input type="text" id="mName" value="My system" style="font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--rule);border-radius:6px;background:var(--bg);color:var(--ink)"></label>
+    </div>
+    <div class="row" style="margin-top:12px"><button id="addManual">Add to map</button><button class="secondary" id="clearNew">Remove added systems</button></div>
+    <div class="msg" id="mMsg"></div>
   </div>
 </div>
 
 <h2 id="submit">Submit for review</h2>
-<p class="sub">Submit a system you added so it appears for everyone. It is listed as pending until the maintainers check the scores against the source paper, then marked as verified.</p>
+<p class="sub">Only systems loaded from the scoring skill's JSON file can be submitted; manually entered scores cannot. Submit a system so it appears for everyone. It is listed as pending until the maintainers check the scores against the source paper, then marked as verified.</p>
 <div class="card">
   <div class="row">
     <label class="control">System to submit <select id="subSel"></select></label>
@@ -503,8 +505,8 @@ function drawSpider(d) {
 let sortKey = "name", sortDir = 1;
 function drawTable() {
   const rows = systems().slice().sort((a, b) => {
-    const va = sortKey === "name" ? a.name : sortKey === "status" ? a.status : a.scores[sortKey];
-    const vb = sortKey === "name" ? b.name : sortKey === "status" ? b.status : b.scores[sortKey];
+    const va = sortKey === "name" ? labelText(a) : sortKey === "status" ? a.status : a.scores[sortKey];
+    const vb = sortKey === "name" ? labelText(b) : sortKey === "status" ? b.status : b.scores[sortKey];
     return (va > vb ? 1 : va < vb ? -1 : 0) * sortDir;
   });
   const cols = [["name", "System"], ["status", "Status"], ...AX.map(a => [a, `${a}. ${SPOKE[a]}`])];
@@ -521,7 +523,7 @@ function drawTable() {
   const tr = t.append("tbody").selectAll("tr").data(rows).join("tr")
     .attr("class", d => d === selected ? "sel" : null).style("cursor", "pointer")
     .on("click", (ev, d) => select(d));
-  tr.append("td").attr("class", "name").text(d => d.name);
+  tr.append("td").attr("class", "name").attr("title", d => d.name).text(labelText);
   tr.append("td").attr("class", "status").text(d => ({"new": "added here", "community-pending": "pending review",
     "anchor": "manuscript", "reference": "reference",
     "community-verified": "community, verified"})[d.status] || d.status);
@@ -546,14 +548,17 @@ function validate(obj) {
     if (v < meta[a].min || v > meta[a].max) throw new Error(`Axis ${a} is ${v}; it must be between ${meta[a].min} and ${meta[a].max}.`);
     scores[a] = v;
   }
-  return {...obj, name: String(obj.name), ref: obj.ref || "Added system", status: "new", scores};
+  // Only the scoring skill's own output may be submitted: it carries skill_version and evidence for every axis.
+  const submittable = !!obj.skill_version && AX.every(a => obj.evidence && obj.evidence[a] && obj.evidence[a].basis);
+  return {...obj, name: String(obj.name), ref: obj.ref || "Added system", status: "new", scores, submittable};
 }
 function addSystems(objs, msgEl) {
   try {
     const list = (Array.isArray(objs) ? objs : [objs]).map(validate);
     added = added.concat(list); selected = list.at(-1); refreshSubmit();
     drawSpider(selected); draw();
-    msgEl.className = "msg"; msgEl.textContent = `Added ${list.map(s => s.name).join(", ")} to the map.`;
+    msgEl.className = "msg"; msgEl.textContent = `Added ${list.map(s => s.name).join(", ")} to the map.` +
+      (list.some(s => !s.submittable) ? " This system can be viewed here but not submitted: submission needs the JSON file from the scoring skill." : "");
   } catch (e) { msgEl.className = "msg err"; msgEl.textContent = e.message; }
 }
 $("addManual").onclick = () => {
@@ -573,17 +578,18 @@ $("jsonFile").onchange = ev => {
 };
 function refreshSubmit() {
   const sel = $("subSel"); sel.innerHTML = "";
-  if (!added.length) sel.append(new Option("Add a system above first", ""));
-  added.forEach((s, i) => sel.append(new Option(s.name, i)));
+  const ok = added.map((s, i) => [s, i]).filter(([s]) => s.submittable);
+  if (!ok.length) sel.append(new Option("Load skill JSON above first", ""));
+  ok.forEach(([s, i]) => sel.append(new Option(s.name, i)));
 }
 function chosen() {
-  const s = added[+$("subSel").value];
-  if (!s) { $("sMsg").className = "msg err"; $("sMsg").textContent = "Add a system with the forms above first."; }
+  const v = $("subSel").value, s = v === "" ? undefined : added[+v];
+  if (!s) { $("sMsg").className = "msg err"; $("sMsg").textContent = "Load the JSON file from the scoring skill above first. Manually entered scores cannot be submitted."; }
   return s;
 }
 $("downloadBtn").onclick = () => {
   const s = chosen(); if (!s) return;
-  const payload = {...s, status: "community-pending", rubric_version: DATA.version};
+  const {submittable, ...rest} = s, payload = {...rest, status: "community-pending", rubric_version: DATA.version};
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 1)], {type: "application/json"}));
   a.download = s.name.replace(/[^A-Za-z0-9]+/g, "_") + "_scores.json";
@@ -596,7 +602,7 @@ if (!REPO_URL) {
 }
 $("submitBtn").onclick = () => {
   const s = chosen(); if (!s) return;
-  const payload = {...s, status: "community-pending", rubric_version: DATA.version};
+  const {submittable, ...rest} = s, payload = {...rest, status: "community-pending", rubric_version: DATA.version};
   // Hand the system to the review page through the URL hash (base64url JSON); nothing is sent to a server.
   const bytes = new TextEncoder().encode(JSON.stringify(payload));
   const b64 = btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -608,6 +614,7 @@ else {
   $("skillLink").replaceWith(document.createTextNode("scoring skill (digital-twin-scorer.skill, shared with this page)"));
   $("skillBtn").replaceWith(document.createTextNode("The skill file (digital-twin-scorer.skill) is shared alongside this page."));
 }
+if (REPO_URL) $("navRubric").href = `${REPO_URL}/blob/main/digital-twin-scorer/references/rubric.md`; else $("navRubric").hidden = true;
 for (const id of ["rubricLink"]) {
   if (REPO_URL) $(id).href = `${REPO_URL}/blob/main/digital-twin-scorer/references/rubric.md`;
   else $(id).replaceWith(document.createTextNode("current rubric and decision rules (digital-twin-scorer/references/rubric.md)"));
