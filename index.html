@@ -125,6 +125,24 @@ footer { color: var(--muted); font-size: 13px; padding: 48px 0 40px; border-top:
 .legend svg { vertical-align: -3px; margin-right: 4px; }
 .banner { background: #fff4d6; color: #5c4400; border-bottom: 1px solid #e8d49a; font-size: 14px; font-weight: 600; text-align: center; padding: 8px 16px; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .banner { background: #3a2f12; color: #f3dc9b; border-color: #5c4a1c; } }
+.path { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-top: 18px; }
+.path a { display: block; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; text-decoration: none; color: var(--ink); }
+.path a:hover { border-color: var(--accent); }
+.path b { display: block; font-size: 15px; }
+.path span { display: block; font-size: 13px; color: var(--muted); }
+details.adv { margin-top: 8px; }
+details summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--accent); padding: 4px 0; }
+details.manual { margin-top: 16px; }
+details.manual > p, details.manual .notice { font-size: 14px; }
+.flow ol { list-style: none; counter-reset: st; margin: 0; padding: 0; }
+.flow li { counter-increment: st; position: relative; padding: 0 0 18px 44px; }
+.flow li:last-child { padding-bottom: 0; }
+.flow li::before { content: counter(st); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--bg); font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.flow h3 { margin: 4px 0 6px; font-size: 16px; }
+.flow p { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
+ul.fpscores { list-style: none; margin: 8px 0 0; padding: 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+ul.fpscores li { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid var(--rule); }
+table.data td.name { text-decoration: underline dotted; text-underline-offset: 3px; }
 a.btnlink { display: inline-block; font-size: 14px; font-weight: 600; border-radius: 6px; padding: 8px 14px; text-decoration: none; border: 1px solid var(--accent); background: var(--accent); color: var(--bg); }
 .notice { border-left: 4px solid var(--vvuq); padding: 6px 10px; background: var(--bg); border-radius: 4px; color: var(--ink) !important; }
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -134,19 +152,24 @@ a.btnlink { display: inline-block; font-size: 14px; font-weight: 600; border-rad
 <div class="wrap">
 
 <nav class="top" aria-label="Sections">
-  <a href="#explore">Visualization</a>
-  <a href="#table">Data table</a>
-  <a href="#skill">Scoring skill</a>
-  <a href="#place">Add your system</a>
+  <a href="#explore">Explore</a>
+  <a href="#table">Compare</a>
+  <a href="#evaluate">Evaluate your system</a>
+  <a href="#submit">Contribute</a>
   <a href="#" id="navRubric" target="_blank" rel="noopener">Rubric</a>
 </nav>
 <header id="top">
   <h1>Digital Twin Design Landscape</h1>
-  <p class="lede">Digital twins and related systems in chemistry, materials science, and quantum information science, scored on six design axes. Choose what each plot dimension shows, compare fingerprints, and place your own system on the map.</p>
+  <p class="lede"><b>What makes a digital twin?</b> Not all systems described as digital twins have the same capabilities. This landscape compares digital twins and related systems in chemistry, materials science, and quantum information science across six dimensions of design, from physical–digital coupling to model fidelity, validation, and autonomy.</p>
+  <div class="path">
+    <a href="#explore"><b>1. Explore</b><span>Compare existing systems and their design profiles.</span></a>
+    <a href="#evaluate"><b>2. Evaluate</b><span>Score your own paper with the scoring skill.</span></a>
+    <a href="#submit"><b>3. Contribute</b><span>Submit your system for verification.</span></a>
+  </div>
 </header>
 
-<h2 id="explore">Explore the landscape</h2>
-<p class="sub">Hover a point for its scores; click a point or a table row to show its fingerprint. Axis 4 is a base-10 logarithm.</p>
+<h2 id="explore">Explore existing systems</h2>
+<p class="sub">Hover a point for its scores; click a point or a table row to show its system profile.</p>
 
 <div class="explorer">
   <div>
@@ -156,80 +179,88 @@ a.btnlink { display: inline-block; font-size: 14px; font-weight: 600; border-rad
   <label class="control">X axis <select id="xSel"></select></label>
   <label class="control">Y axis <select id="ySel"></select></label>
   <label class="control">Color <select id="cSel"></select></label>
-  <label class="control">Marker size <select id="sSel"></select></label>
-  <label class="control">Label size <input type="range" id="labelSize" min="9" max="22" value="13"></label>
-  <label class="control">Marker scale <input type="range" id="markerScale" min="0.5" max="2" step="0.1" value="1"></label>
-  <label class="control">Label text <select id="labelMode"><option value="author">Author et al. year</option><option value="name">Short name</option><option value="both">Author year · name</option></select></label>
   <label class="control toggle"><input type="checkbox" id="showLabels" checked> Labels</label>
-  <label class="control toggle"><input type="checkbox" id="showRef" checked> Reference anchors</label>
-  <label class="control toggle"><input type="checkbox" id="showCand"> Candidates</label>
-  <label class="control toggle"><input type="checkbox" id="showComm" checked> Community submissions</label>
-  <label class="control">Export format <select id="exportFmt"><option value="png">PNG</option><option value="svg">SVG (vector)</option></select></label>
-  <label class="control" id="dpiWrap">Resolution <select id="exportDpi"><option value="72">72 dpi</option><option value="150">150 dpi</option><option value="300" selected>300 dpi</option><option value="600">600 dpi</option></select></label>
-  <button class="secondary" id="exportBtn" type="button">Export plot</button>
 </div>
+<p class="hint" id="axisHint" style="margin:6px 0 0"></p>
+<details class="adv">
+  <summary>Advanced settings</summary>
+  <div class="controls">
+    <label class="control">Marker size <select id="sSel"></select></label>
+    <label class="control">Label size <input type="range" id="labelSize" min="9" max="22" value="13"></label>
+    <label class="control">Marker scale <input type="range" id="markerScale" min="0.5" max="2" step="0.1" value="1"></label>
+    <label class="control">Label text <select id="labelMode"><option value="author">Author et al. year</option><option value="name">Short name</option><option value="both">Author year · name</option></select></label>
+    <label class="control toggle"><input type="checkbox" id="showRef" checked> Reference anchors</label>
+    <label class="control toggle"><input type="checkbox" id="showCand"> Candidates</label>
+    <label class="control toggle"><input type="checkbox" id="showComm" checked> Community submissions</label>
+  </div>
+  <div class="controls">
+    <label class="control">Export format <select id="exportFmt"><option value="png">PNG</option><option value="svg">SVG (vector)</option></select></label>
+    <label class="control" id="dpiWrap">Resolution <select id="exportDpi"><option value="72">72 dpi</option><option value="150">150 dpi</option><option value="300" selected>300 dpi</option><option value="600">600 dpi</option></select></label>
+    <button class="secondary" id="exportBtn" type="button">Export plot</button>
+  </div>
+</details>
   </div>
   <aside class="fingerprint" aria-live="polite">
-    <h3 id="fpName">Fingerprint</h3>
+    <h3 id="fpName">System profile</h3>
+    <p class="hint" style="margin:0 0 4px">The six-axis profile summarizes how a system is designed and operated.</p>
     <p class="ref" id="fpRef">Select a system to see its six-axis profile.</p>
     <div id="spider"></div>
+    <ul class="fpscores" id="fpScores"></ul>
     <p class="hint" id="bandHint"></p>
     <button class="secondary" id="axisBtn" style="margin-top:12px;width:100%">Propose a modification or new axis</button>
   </aside>
 </div>
 
-<h2 id="table">Scores</h2>
-<p class="sub">Select a column header to sort. System names follow the "Label text" setting under the plot.</p>
+<h2 id="table">Compare systems</h2>
+<p class="sub">Select a column header to sort, or a system name to see it on the plot. Names follow the "Label text" setting under the plot (Advanced settings).</p>
 <div class="tablewrap"><table class="data" id="tbl"></table></div>
 
-<h2 id="skill">Scoring skill</h2>
-<p class="sub">The scoring skill reads a paper and scores it on the six axes, with a basis for every score, so the result matches the anchors on this map.</p>
-<div class="card">
-  <div class="row" style="margin-bottom:10px"><a class="btnlink" id="skillBtn" href="#">Download the scoring skill</a>
-    <a href="https://support.claude.com/en/articles/12512180-use-skills-in-claude" target="_blank" rel="noopener">How to add a skill to Claude</a></div>
-  <p style="margin:0">Then upload a manuscript to Claude and ask it to score the system. Load the JSON file it returns under "Add your system" below.</p>
+<h2 id="evaluate">Evaluate your system</h2>
+<p class="sub">Score your own paper with the scoring skill and see where it lands on the map. Nothing you enter here leaves your browser.</p>
+<div class="card flow">
+  <ol>
+    <li>
+      <h3>Download the scoring skill <span class="opt">(required to submit)</span></h3>
+      <div class="row"><a class="btnlink" id="skillBtn" href="#">Download scoring skill</a>
+        <a href="https://support.claude.com/en/articles/12512180-use-skills-in-claude" target="_blank" rel="noopener">How to add a skill to Claude</a></div>
+    </li>
+    <li>
+      <h3>Score your manuscript</h3>
+      <p>Upload your paper to Claude and ask it to score the system with the scoring skill. It returns a JSON score file with the evidence for every score.</p>
+    </li>
+    <li>
+      <h3>Load your scores</h3>
+      <div class="row" style="margin:6px 0"><input type="file" id="jsonFile" accept=".json,application/json"></div>
+      <label class="vh" for="jsonText">Paste score JSON</label>
+      <textarea id="jsonText" placeholder='Or paste the JSON returned by the scoring skill'></textarea>
+      <div class="row" style="margin-top:10px"><button id="addJson">Add system to the map</button><button class="secondary" id="clearNew">Remove added systems</button></div>
+      <div class="msg" id="jMsg"></div>
+    </li>
+  </ol>
 </div>
-
-<h2 id="place">Add your system</h2>
-<p class="sub">Your system is drawn as a star on the plot and added to the table. Nothing you enter here leaves your browser. To add your system to the website perminantly go to submit your system for review below.</p>
-<div class="place">
-  <div class="card">
-    <h3>Load scores from the scoring skill <span class="opt" style="font-weight:400;font-size:13px">(required to submit)</span></h3>
-    <p>The scoring skill reads a manuscript and returns a JSON score file. Load that file, or paste its contents, to place the system.</p>
-    <ol class="steps">
-      <li>Download the <a href="#" id="skillLink">scoring skill</a> and <a href="https://support.claude.com/en/articles/12512180-use-skills-in-claude" target="_blank" rel="noopener">add it to Claude</a>.</li>
-      <li>Upload your manuscript to Claude and ask it to score the system.</li>
-      <li>Load the JSON file it returns here.</li>
-    </ol>
-    <div class="row" style="margin:10px 0"><input type="file" id="jsonFile" accept=".json,application/json"></div>
-    <label class="vh" for="jsonText">Paste score JSON</label>
-    <textarea id="jsonText" placeholder='Paste the JSON file returned by the scoring skill'></textarea>
-    <div class="row" style="margin-top:10px"><button id="addJson">Add pasted scores</button></div>
-    <div class="msg" id="jMsg"></div>
+<details class="card manual">
+  <summary>Advanced: enter scores manually</summary>
+  <p class="notice"><b>For exploring only.</b> You cannot submit manually entered scores for review. To submit a system, score its paper with the scoring skill and load the JSON file it returns.</p>
+  <p>Score each axis with the rubric to see where a hypothetical system would appear on the map.</p>
+  <div class="grid7" id="manual"></div>
+  <div class="row">
+    <label class="control" style="flex:1 1 180px">Name <input type="text" id="mName" value="My system" style="font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--rule);border-radius:6px;background:var(--bg);color:var(--ink)"></label>
   </div>
-  <div class="card">
-    <h3>Enter scores</h3>
-    <p>Score each axis with the rubric, then add the system to the map.</p>
-    <p class="notice"><b>For exploring only.</b> You cannot submit manually entered scores for review. To submit a system, score its paper with the scoring skill and load the JSON file it returns (left).</p>
-    <div class="grid7" id="manual"></div>
-    <div class="row">
-      <label class="control" style="flex:1 1 180px">Name <input type="text" id="mName" value="My system" style="font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--rule);border-radius:6px;background:var(--bg);color:var(--ink)"></label>
-    </div>
-    <div class="row" style="margin-top:12px"><button id="addManual">Add to map</button><button class="secondary" id="clearNew">Remove added systems</button></div>
-    <div class="msg" id="mMsg"></div>
-  </div>
-</div>
+  <div class="row" style="margin-top:12px"><button id="addManual">Add to map</button></div>
+  <div class="msg" id="mMsg"></div>
+</details>
 
-<h2 id="submit">Submit for review</h2>
-<p class="sub">Only systems loaded from the scoring skill's JSON file can be submitted; manually entered scores cannot. Submit a system so it appears for everyone. It is listed as pending until the maintainers check the scores against the source paper, then marked as verified.</p>
+<h2 id="submit">Contribute to the landscape</h2>
+<p class="sub">Submit a system so it appears for everyone. Only systems loaded from the scoring skill's JSON file can be submitted; manually entered scores cannot. A submission is listed as pending until the maintainers re-run the skill on the source paper and confirm the scores, then marked as verified.</p>
 <div class="card">
   <div class="row">
     <label class="control">System to submit <select id="subSel"></select></label>
     <button id="submitBtn">Review and submit</button>
     <button class="secondary" id="downloadBtn">Download score file</button>
   </div>
+  <p class="hint" id="subReady" style="margin:8px 0 0"></p>
   <div class="msg" id="sMsg"></div>
-  <p style="margin-top:12px" id="subInfo">"Review and submit" opens a page that summarizes your system, checks that every field is complete, and prepares a GitHub issue. Include the DOI and the evidence and basis (E/I/T) for each score that the skill returns. To propose a new axis or a change to an existing one, use "Propose a modification or new axis" beside the fingerprint.</p>
+  <p style="margin-top:12px" id="subInfo">"Review and submit" opens a page that summarizes your system, checks that every field is complete, and prepares a GitHub issue. Include the DOI and the evidence and basis (E/I/T) for each score that the skill returns. To propose a new axis or a change to an existing one, use "Propose a modification or new axis" beside the system profile.</p>
 </div>
 
 <footer>
@@ -310,6 +341,7 @@ function draw() {
   const xa = $("xSel").value, ya = $("ySel").value, ca = $("cSel").value, sa = $("sSel").value;
   const lsize = +$("labelSize").value, mscale = +$("markerScale").value;
   const data = systems();
+  $("axisHint").textContent = [xa, ya, ca].includes("4") ? "Axis 4 is a base-10 logarithm: log\u2081\u2080 of the number of parameters fitted to the system\u2019s own data." : "";
   const pad = a => (meta[a].max - meta[a].min) * 0.06;
   const x = d3.scaleLinear([meta[xa].min - pad(xa), meta[xa].max + pad(xa)], [m.l, W - m.r]);
   const y = d3.scaleLinear([meta[ya].min - pad(ya), meta[ya].max + pad(ya)], [H - m.b, m.t]);
@@ -465,16 +497,20 @@ const scoreText = (a, d) => {
 const fmt = (a, v) => meta[a].scale === "diverging" ? (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(1) : v.toFixed(1);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-// ---------- fingerprint
+// ---------- system profile
 function select(d) { selected = d; drawSpider(d); draw(); }
 function drawSpider(d) {
-  $("fpName").textContent = d ? d.name : "Fingerprint";
-  $("fpRef").textContent = d ? (d.ref || "Added system") : "Select a system to see its six-axis profile.";
+  $("fpName").textContent = d ? d.name : "System profile";
+  $("fpScores").innerHTML = d ? AX.map(a => `<li><span>${a}. ${esc(meta[a].name)}</span><b>${scoreText(a, d)}</b></li>`).join("") : "";
+  const doiOk = d && typeof d.doi === "string" && /^10\.\d{4,9}\/\S+$/.test(d.doi.trim());
+  $("fpRef").innerHTML = d ? esc(d.ref || "Added system") + (doiOk
+    ? ` <a href="https://doi.org/${encodeURI(d.doi.trim())}" target="_blank" rel="noopener">DOI: ${esc(d.doi.trim())}</a>` : "")
+    : "Select a system to see its six-axis profile.";
   const S = 300, c = S / 2, R = 100, n = AX.length;
   const ang = i => -Math.PI / 2 + 2 * Math.PI * i / n;      // clockwise from top
   const pt = (i, r) => [c + r * Math.cos(ang(i)), c + r * Math.sin(ang(i))];
   const svg = d3.select("#spider").selectAll("svg").data([0]).join("svg").attr("viewBox", `-60 10 ${S + 120} ${S - 20}`)
-    .attr("role", "img").attr("aria-label", d ? `Fingerprint of ${d.name}` : "Fingerprint key");
+    .attr("role", "img").attr("aria-label", d ? `System profile of ${d.name}` : "System profile key");
   svg.selectAll("*").remove();
   const ink = css("--ink"), vv = css("--vvuq");
   const half = Math.PI / n * 0.55;
@@ -509,11 +545,12 @@ function drawTable() {
     const vb = sortKey === "name" ? labelText(b) : sortKey === "status" ? b.status : b.scores[sortKey];
     return (va > vb ? 1 : va < vb ? -1 : 0) * sortDir;
   });
-  const cols = [["name", "System"], ["status", "Status"], ...AX.map(a => [a, `${a}. ${SPOKE[a]}`])];
+  const cols = [["name", "System"], ["status", "Status"], ...AX.map(a => [a, `${a}. ${meta[a].name}`])];
   const t = d3.select("#tbl"); t.selectAll("*").remove();
   t.append("thead").append("tr").selectAll("th").data(cols).join("th")
     .attr("scope", "col").attr("tabindex", d => d[0] === "lbl" ? null : 0)
     .attr("aria-sort", d => d[0] === sortKey ? (sortDir > 0 ? "ascending" : "descending") : null)
+    .attr("title", d => AX.includes(d[0]) ? meta[d[0]].label : null)
     .text(d => d[1])
     .on("click keydown", (ev, d) => {
       if (d[0] === "lbl" || (ev.type === "keydown" && ev.key !== "Enter")) return;
@@ -523,10 +560,11 @@ function drawTable() {
   const tr = t.append("tbody").selectAll("tr").data(rows).join("tr")
     .attr("class", d => d === selected ? "sel" : null).style("cursor", "pointer")
     .on("click", (ev, d) => select(d));
-  tr.append("td").attr("class", "name").attr("title", d => d.name).text(labelText);
-  tr.append("td").attr("class", "status").text(d => ({"new": "added here", "community-pending": "pending review",
-    "anchor": "manuscript", "reference": "reference",
-    "community-verified": "community, verified"})[d.status] || d.status);
+  tr.append("td").attr("class", "name").attr("title", d => `${d.name}: show on the plot`).text(labelText)
+    .on("click", (ev, d) => { ev.stopPropagation(); select(d); $("explore").scrollIntoView(); });
+  tr.append("td").attr("class", "status").text(d => ({"new": "Added in this browser", "community-pending": "Awaiting verification",
+    "anchor": "Included in original study", "reference": "External reference", "candidate": "Under consideration",
+    "community-verified": "Verified contribution"})[d.status] || d.status);
   AX.forEach(a => tr.append("td").attr("class", BANDED.includes(a) ? "cell-vvuq" : null).text(d => scoreText(a, d)));
 }
 
@@ -581,6 +619,9 @@ function refreshSubmit() {
   const ok = added.map((s, i) => [s, i]).filter(([s]) => s.submittable);
   if (!ok.length) sel.append(new Option("Load skill JSON above first", ""));
   ok.forEach(([s, i]) => sel.append(new Option(s.name, i)));
+  $("subReady").textContent = ok.length
+    ? "Ready: the selected system has scores and evidence for all six axes. You will add its DOI on the next page."
+    : "Nothing to submit yet. Load a score file from the scoring skill under Evaluate your system.";
 }
 function chosen() {
   const v = $("subSel").value, s = v === "" ? undefined : added[+v];
@@ -609,11 +650,8 @@ $("submitBtn").onclick = () => {
   window.open(`${SUBMIT_PAGE}#d=${b64}`, "_blank", "noopener");
   $("sMsg").className = "msg"; $("sMsg").textContent = `Opened the review page for ${s.name} in a new tab.`;
 };
-if (SKILL_URL) { $("skillLink").href = SKILL_URL; $("skillBtn").href = SKILL_URL; }
-else {
-  $("skillLink").replaceWith(document.createTextNode("scoring skill (digital-twin-scorer.skill, shared with this page)"));
-  $("skillBtn").replaceWith(document.createTextNode("The skill file (digital-twin-scorer.skill) is shared alongside this page."));
-}
+if (SKILL_URL) $("skillBtn").href = SKILL_URL;
+else $("skillBtn").replaceWith(document.createTextNode("The skill file (digital-twin-scorer.skill) is shared alongside this page."));
 if (REPO_URL) $("navRubric").href = `${REPO_URL}/blob/main/digital-twin-scorer/references/rubric.md`; else $("navRubric").hidden = true;
 for (const id of ["rubricLink"]) {
   if (REPO_URL) $(id).href = `${REPO_URL}/blob/main/digital-twin-scorer/references/rubric.md`;

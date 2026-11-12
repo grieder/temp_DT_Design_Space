@@ -4,7 +4,7 @@ A single static page (`index.html`) with:
 - **Interactive scatter:** choose any rubric axis for X, Y, color and marker size; adjust label size and marker scale; toggle labels and candidate anchors. Hover shows all seven scores; click shows the fingerprint.
 - **Fingerprint panel:** six-axis spider in the manuscript's spoke order.
 - **Sortable score table.**
-- **Add your system:** enter six scores by hand, or load or paste the JSON produced by the scoring skill. Added systems appear as stars. All of this runs in the visitor's browser; nothing is uploaded.
+- **Evaluate your system:** enter six scores by hand, or load or paste the JSON produced by the scoring skill. Added systems appear as stars. All of this runs in the visitor's browser; nothing is uploaded.
 
 ## Build
 ```bash
